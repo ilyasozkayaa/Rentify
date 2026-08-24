@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using MediatR;
+using RentifyApplication.Exceptions;
 
 namespace RentifyApplication.Behaviors;
 
@@ -13,10 +14,7 @@ public sealed class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<
         _validators = validators;
     }
 
-    public async Task<TResponse> Handle(
-        TRequest request,
-        RequestHandlerDelegate<TResponse> next,
-        CancellationToken cancellationToken)
+    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         if (!_validators.Any())
         {
@@ -35,7 +33,13 @@ public sealed class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<
 
         if (failures.Count != 0)
         {
-            throw new ValidationException(failures);
+            var errors = failures
+                .GroupBy(x => x.PropertyName)
+                .ToDictionary(
+                x => x.Key,
+                x => x.Select(x => x.ErrorMessage).ToArray());
+
+            throw new ValidationFailedException(errors);
         }
 
         return await next();

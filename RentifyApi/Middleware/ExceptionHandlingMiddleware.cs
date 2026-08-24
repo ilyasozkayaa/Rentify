@@ -1,16 +1,17 @@
-﻿using FluentValidation;
-using System.Net;
-using System.Text.Json;
+﻿using Microsoft.AspNetCore.Mvc;
+using RentifyApplication.Exceptions;
 
 namespace RentifyApi.Middleware;
 
-public class ExceptionHandlingMiddleware
+public sealed class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
 
-    public ExceptionHandlingMiddleware(RequestDelegate next)
+    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -19,26 +20,56 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
-        catch (ValidationException ex)
+        catch (ValidationFailedException ex)
         {
-            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            context.Response.ContentType = "application/json";
-
-            var errors = ex.Errors
-                .GroupBy(x => x.PropertyName)
-                .ToDictionary(
-                    x => x.Key,
-                    x => x.Select(e => e.ErrorMessage).ToArray());
-
-            var response = new
-            {
-                title = "Validation failed",
-                status = 400,
-                errors
-            };
-
-            await context.Response.WriteAsync(
-                JsonSerializer.Serialize(response));
+            _logger.LogWarning("Validation failed for request {Path}", context.Request.Path);
+            await HandleValidationExceptionAsync(context, ex);
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled exception for request {Path}", context.Request.Path);
+            await HandleExceptionAsync(context);
+        }
+    }
+
+    private static async Task HandleValidationExceptionAsync(HttpContext context, ValidationFailedException exception)
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Type = "https://rentify.dev/errors/validation",
+            Title = "Validation failed",
+            Status = StatusCodes.Status400BadRequest,
+            Detail = "One or more validation errors occurred."
+        };
+
+        problemDetails.Extensions["code"] = "VALIDATION_ERROR";
+        problemDetails.Extensions["errors"] = exception.Errors;
+        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
+
+        await WriteResponseAsync(context, problemDetails);
+    }
+
+    private static async Task HandleExceptionAsync(HttpContext context)
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Type = "https://rentify.dev/errors/internal-server-error",
+            Title = "An unexpected error occurred.",
+            Status = StatusCodes.Status500InternalServerError,
+            Detail = "An unexpected error occurred while processing the request."
+        };
+
+        problemDetails.Extensions["code"] = "INTERNAL_SERVER_ERROR";
+        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
+
+        await WriteResponseAsync(context, problemDetails);
+    }
+
+    private static async Task WriteResponseAsync(HttpContext context, ProblemDetails problemDetails)
+    {
+        context.Response.StatusCode = problemDetails.Status ?? 500;
+        context.Response.ContentType = "application/problem+json";
+
+        await context.Response.WriteAsJsonAsync(problemDetails);
     }
 }
