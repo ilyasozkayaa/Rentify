@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/api/">
+    <Project Path="RentifyApi/RentifyApi.csproj" />
+  </Folder>
+  <Folder Name="/src/application/">
+    <Project Path="RentifyApplication/RentifyApplication.csproj" />
+  </Folder>
+  <Folder Name="/src/domain/">
+    <Project Path="RentifyDomain/RentifyDomain.csproj" />
+  </Folder>
+  <Folder Name="/src/infrastructure/">
+    <Project Path="RentifyInfrastructure/RentifyInfrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/web/">
+    <Project Path="RentifyWeb/RentifyWeb.csproj" />
+  </Folder>
+</Solution>
