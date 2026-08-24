@@ -1,3 +1,4 @@
+using RentifyApi.Middleware;
 using RentifyApplication.Dependency;
 using Scalar.AspNetCore;
 
@@ -12,6 +13,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddApplication();
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
