@@ -15,4 +15,7 @@
   <Folder Name="/src/web/">
     <Project Path="RentifyWeb/RentifyWeb.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="RentifyUnitTests/RentifyUnitTests.csproj" Id="3039aff7-bb8d-4a9b-ada6-993044a23b60" />
+  </Folder>
 </Solution>
