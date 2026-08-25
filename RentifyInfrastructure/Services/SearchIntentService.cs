@@ -81,7 +81,31 @@ public sealed class SearchIntentService : ISearchIntentService
         catch (ClientResultException ex)
         {
             _llmMetrics.RecordFailure(model);
-            throw new LlmServiceException(code: "LLM_SERVICE_ERROR", statusCode: 503, message: "Search service is temporarily unavailable.", innerException: ex);
+
+            var (code, statusCode, message) = ex.Status switch
+            {
+                401 => (
+                    "LLM_AUTHENTICATION_ERROR",
+                    502,
+                    "Search service authentication failed."),
+
+                429 => (
+                    "LLM_RATE_LIMITED",
+                    503,
+                    "Search service is temporarily busy."),
+
+                >= 500 => (
+                    "LLM_SERVICE_ERROR",
+                    503,
+                    "Search service is temporarily unavailable."),
+
+                _ => (
+                    "LLM_REQUEST_ERROR",
+                    502,
+                    "Search service could not process the request.")
+            };
+
+            throw new LlmServiceException(code, statusCode, message, ex);
         }
         finally
         {
