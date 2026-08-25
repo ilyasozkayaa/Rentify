@@ -19,6 +19,7 @@ public static class SearchIntentSchema
                         "Vehicle",
                         "Property",
                         "Hotel",
+                        "Villa",
                         "Unknown"
                     }
                 },

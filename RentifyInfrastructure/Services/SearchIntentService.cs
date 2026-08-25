@@ -4,6 +4,7 @@ using OpenAI.Responses;
 using RentifyApplication.Exceptions;
 using RentifyApplication.IServices;
 using RentifyApplication.Query.SearchRentals.SearchCriteria;
+using RentifyDomain.Enum;
 using RentifyInfrastructure.Mappers;
 using RentifyInfrastructure.Metrics;
 using RentifyInfrastructure.Models;
@@ -43,31 +44,33 @@ public sealed class SearchIntentService : ISearchIntentService
         var options = new CreateResponseOptions
         {
             Model = model,
+            MaxOutputTokenCount = 256,
             TextOptions = new ResponseTextOptions
             {
                 TextFormat = ResponseTextFormat.CreateJsonSchemaFormat(jsonSchemaFormatName: "search_intent", jsonSchema: SearchIntentSchema.Create())
             }
         };
 
+        options.TextOptions.Patch.Set("$.verbosity"u8, "low");
+
         options.InputItems.Add(
             ResponseItem.CreateSystemMessageItem(
                 """
-            You are Rentify's search intent extraction engine.
-            Convert the user's natural-language rental request into structured search criteria.
+        Extract rental search criteria from the user's query.
 
-            Supported rental types:
-            Vehicle, Property, Hotel, Unknown.
+        Rental types:
+        Vehicle, Property, Hotel, Villa, Unknown.
 
-            Rules:
-            - Never invent information.
-            - Extract only stated or clearly implied information.
-            - Use null for unspecified values.
-            - Use Unknown when the rental type is unclear.
-            - Normalize obvious synonyms.
-            - Extract location, dates and price only when provided.
-            - Extract type-specific criteria when provided.
-            - Do not perform the search.
-            """));
+        Rules:
+        - Extract only stated or clearly implied information.
+        - Use null for unspecified values.
+        - Use Unknown when the rental type is unclear.
+        - Normalize obvious synonyms.
+        - Dates must always be returned as strings in yyyy-MM-dd format.
+        - Never return dates in natural language or localized formats.
+        - Convert natural-language dates to yyyy-MM-dd when they can be determined.
+        - Do not perform the search.
+        """));
 
         options.InputItems.Add(ResponseItem.CreateUserMessageItem(query));
 
@@ -130,9 +133,47 @@ public sealed class SearchIntentService : ISearchIntentService
 
         if (modelResult is null)
         {
-            throw new InvalidOperationException("The search intent could not be parsed.");
+            throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an empty response.");
         }
 
+        ValidateModelResult(modelResult);
+
         return SearchIntentMapper.Map(modelResult);
+    }
+
+    private static void ValidateModelResult(SearchIntentModel model)
+    {
+        if (!Enum.TryParse<RentalType>(model.RentalType, ignoreCase: true, out var rentalType) || !Enum.IsDefined(rentalType))
+        {
+            throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid rental type.");
+        }
+
+        DateOnly? startDate = null;
+        DateOnly? endDate = null;
+
+        if (!string.IsNullOrWhiteSpace(model.StartDate))
+        {
+            if (!DateOnly.TryParseExact(model.StartDate, "yyyy-MM-dd", out var parsedStartDate))
+            {
+                throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid start date.");
+            }
+
+            startDate = parsedStartDate;
+        }
+
+        if (!string.IsNullOrWhiteSpace(model.EndDate))
+        {
+            if (!DateOnly.TryParseExact(model.EndDate, "yyyy-MM-dd", out var parsedEndDate))
+            {
+                throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid end date.");
+            }
+
+            endDate = parsedEndDate;
+        }
+
+        if (startDate.HasValue && endDate.HasValue && endDate < startDate)
+        {
+            throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid date range.");
+        }
     }
 }
