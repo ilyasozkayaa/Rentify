@@ -1,5 +1,7 @@
+using OpenAI.Responses;
 using RentifyApi.Middleware;
 using RentifyApplication.Dependency;
+using RentifyInfrastructure.Dependency;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +13,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
