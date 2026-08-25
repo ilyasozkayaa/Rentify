@@ -1,8 +1,9 @@
-using OpenAI.Responses;
 using RentifyApi.Middleware;
 using RentifyApplication.Dependency;
 using RentifyInfrastructure.Dependency;
 using Scalar.AspNetCore;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,20 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services
+    .AddOpenTelemetry()
+    .ConfigureResource(resource =>
+    {
+        resource.AddService("RentifyApi");
+    })
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddMeter("Rentify.LLM")
+            .AddAspNetCoreInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddConsoleExporter();
+    });
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);

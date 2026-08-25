@@ -22,12 +22,25 @@ public sealed class ExceptionHandlingMiddleware
         }
         catch (ValidationFailedException ex)
         {
-            _logger.LogWarning("Validation failed for request {Path}", context.Request.Path);
+            _logger.LogWarning( "Validation failed for request {Path}", context.Request.Path);
+
             await HandleValidationExceptionAsync(context, ex);
+        }
+        catch (LlmServiceException ex)
+        {
+            _logger.LogError(ex, "LLM service failure for request {Path}", context.Request.Path);
+
+            await HandleLlmExceptionAsync(context, ex);
+        }
+        catch (OperationCanceledException) when (
+            context.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogInformation("Request was cancelled by the client. Path: {Path}", context.Request.Path);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception for request {Path}", context.Request.Path);
+
             await HandleExceptionAsync(context);
         }
     }
@@ -44,6 +57,22 @@ public sealed class ExceptionHandlingMiddleware
 
         problemDetails.Extensions["code"] = "VALIDATION_ERROR";
         problemDetails.Extensions["errors"] = exception.Errors;
+        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
+
+        await WriteResponseAsync(context, problemDetails);
+    }
+
+    private static async Task HandleLlmExceptionAsync(HttpContext context, LlmServiceException exception)
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Type = $"https://rentify.dev/errors/{exception.Code.ToLowerInvariant()}",
+            Title = exception.Message,
+            Status = exception.StatusCode,
+            Detail = "The search service could not process the request."
+        };
+
+        problemDetails.Extensions["code"] = exception.Code;
         problemDetails.Extensions["traceId"] = context.TraceIdentifier;
 
         await WriteResponseAsync(context, problemDetails);
