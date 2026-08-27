@@ -7,8 +7,8 @@ public sealed class SearchIntentModel
     [JsonPropertyName("rentalType")]
     public string RentalType { get; set; } = string.Empty;
 
-    [JsonPropertyName("location")]
-    public string? Location { get; set; }
+    [JsonPropertyName("cityCode")]
+    public int CityCode { get; set; }
 
     [JsonPropertyName("startDate")]
     public string? StartDate { get; set; }
@@ -24,6 +24,9 @@ public sealed class SearchIntentModel
 
     [JsonPropertyName("maxPrice")]
     public decimal? MaxPrice { get; set; }
+
+    [JsonPropertyName("currency")]
+    public string? Currency { get; set; }
 
     [JsonPropertyName("vehicleCriteria")]
     public VehicleSearchIntentModel? VehicleCriteria { get; set; }

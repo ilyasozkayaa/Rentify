@@ -55,22 +55,16 @@ public sealed class SearchIntentService : ISearchIntentService
 
         options.InputItems.Add(
             ResponseItem.CreateSystemMessageItem(
-                """
-        Extract rental search criteria from the user's query.
+            """
+            Extract rental search criteria from the user's query.
 
-        Rental types:
-        Vehicle, Property, Hotel, Villa, Unknown.
-
-        Rules:
-        - Extract only stated or clearly implied information.
-        - Use null for unspecified values.
-        - Use Unknown when the rental type is unclear.
-        - Normalize obvious synonyms.
-        - Dates must always be returned as strings in yyyy-MM-dd format.
-        - Never return dates in natural language or localized formats.
-        - Convert natural-language dates to yyyy-MM-dd when they can be determined.
-        - Do not perform the search.
-        """));
+            Rules:
+            - Extract only stated or clearly implied information.
+            - Normalize obvious synonyms.
+            - cityCode must be the Turkish province plate code.
+            - Convert natural-language dates to yyyy-MM-dd when they can be determined.
+            - Currency must be a 3-letter ISO currency code such as TRY, USD or EUR.
+            """));
 
         options.InputItems.Add(ResponseItem.CreateUserMessageItem(query));
 

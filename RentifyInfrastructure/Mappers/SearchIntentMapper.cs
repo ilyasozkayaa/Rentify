@@ -10,12 +10,13 @@ public static class SearchIntentMapper
     {
         return new SearchIntent(
             RentalType: ParseRentalType(model.RentalType),
-            Location: model.Location,
+            CityCode: model.CityCode,
             StartDate: ParseDate(model.StartDate),
             EndDate: ParseDate(model.EndDate),
             SearchText: model.SearchText,
             MinPrice: model.MinPrice,
             MaxPrice: model.MaxPrice,
+            Currency: model.Currency,
             VehicleCriteria: MapVehicle(model.VehicleCriteria),
             PropertyCriteria: MapProperty(model.PropertyCriteria),
             HotelCriteria: MapHotel(model.HotelCriteria)
@@ -29,12 +30,7 @@ public static class SearchIntentMapper
             return RentalType.Unknown;
         }
 
-        return Enum.TryParse<RentalType>(
-            value,
-            ignoreCase: true,
-            out var rentalType)
-            ? rentalType
-            : RentalType.Unknown;
+        return Enum.TryParse<RentalType>(value, ignoreCase: true, out var rentalType) ? rentalType : RentalType.Unknown;
     }
 
     private static DateOnly? ParseDate(string? value)
@@ -44,12 +40,7 @@ public static class SearchIntentMapper
             return null;
         }
 
-        return DateOnly.TryParseExact(
-            value,
-            "yyyy-MM-dd",
-            out var date)
-            ? date
-            : null;
+        return DateOnly.TryParseExact(value, "yyyy-MM-dd", out var date) ? date : null;
     }
 
     private static VehicleSearchCriteria? MapVehicle(VehicleSearchIntentModel? model)

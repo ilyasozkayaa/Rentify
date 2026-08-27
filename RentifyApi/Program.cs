@@ -1,21 +1,17 @@
-using Microsoft.EntityFrameworkCore;
 using OpenAI.Responses;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using RentifyApi.Middleware;
 using RentifyApplication.Dependency;
 using RentifyInfrastructure.Dependency;
-using RentifyInfrastructure.Persistence;
 using Scalar.AspNetCore;
 using System.ClientModel;
 using System.ClientModel.Primitives;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
 builder.Services.AddOpenApi();
 builder.Services
     .AddOpenTelemetry()
@@ -56,7 +52,6 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

@@ -1,5 +1,4 @@
-﻿using RentifyDomain.Enum;
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace RentifyDomain.Entities;
 

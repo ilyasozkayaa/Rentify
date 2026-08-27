@@ -4,10 +4,11 @@ namespace RentifyApplication.Query.SearchRentals;
 
 public sealed record RentalSearchResult
 (
-    Guid Id,
-    RentalType Type,
-    string Name,
-    string? Location,
+    int Id,
+    string RentalType,
+    string Title,
+    string? City,
     decimal Price,
+    string Currency,
     string? Description
 );

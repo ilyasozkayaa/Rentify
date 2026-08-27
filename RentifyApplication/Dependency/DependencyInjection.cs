@@ -7,8 +7,7 @@ namespace RentifyApplication.Dependency;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApplication(
-       this IServiceCollection services)
+    public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         var assembly = typeof(DependencyInjection).Assembly;
 
@@ -19,9 +18,7 @@ public static class DependencyInjection
 
         services.AddValidatorsFromAssembly(assembly);
 
-        services.AddTransient(
-            typeof(IPipelineBehavior<,>),
-            typeof(ValidationBehavior<,>));
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
         return services;
     }

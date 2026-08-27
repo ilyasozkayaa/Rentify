@@ -23,13 +23,11 @@ public sealed class ExceptionHandlingMiddleware
         catch (ValidationFailedException ex)
         {
             _logger.LogWarning( "Validation failed for request {Path}", context.Request.Path);
-
             await HandleValidationExceptionAsync(context, ex);
         }
         catch (LlmServiceException ex)
         {
             _logger.LogError(ex, "LLM service failure for request {Path}", context.Request.Path);
-
             await HandleLlmExceptionAsync(context, ex);
         }
         catch (OperationCanceledException) when (
@@ -40,7 +38,6 @@ public sealed class ExceptionHandlingMiddleware
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception for request {Path}", context.Request.Path);
-
             await HandleExceptionAsync(context);
         }
     }

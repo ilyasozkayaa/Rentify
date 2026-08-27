@@ -24,7 +24,12 @@ public static class SearchIntentSchema
                     }
                 },
 
-                location = new
+                cityCode = new
+                {
+                    type = "integer"
+                },
+
+                currency = new
                 {
                     type = new[] { "string", "null" }
                 },
@@ -190,12 +195,13 @@ public static class SearchIntentSchema
             required = new[]
             {
                 "rentalType",
-                "location",
+                "cityCode",
                 "startDate",
                 "endDate",
                 "searchText",
                 "minPrice",
                 "maxPrice",
+                "currency",
                 "vehicleCriteria",
                 "propertyCriteria",
                 "hotelCriteria"
