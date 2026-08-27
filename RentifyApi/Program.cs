@@ -1,9 +1,11 @@
+using Microsoft.EntityFrameworkCore;
 using OpenAI.Responses;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using RentifyApi.Middleware;
 using RentifyApplication.Dependency;
 using RentifyInfrastructure.Dependency;
+using RentifyInfrastructure.Persistence;
 using Scalar.AspNetCore;
 using System.ClientModel;
 using System.ClientModel.Primitives;
@@ -31,7 +33,7 @@ builder.Services
     });
 
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure();
+builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton<ResponsesClient>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();

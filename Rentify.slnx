@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/build/">
+    <File Path="docker-compose.yaml" />
+  </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/api/">
     <Project Path="RentifyApi/RentifyApi.csproj" />
