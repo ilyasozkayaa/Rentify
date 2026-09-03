@@ -16,7 +16,7 @@ public static class SearchIntentMapper
             SearchText: model.SearchText,
             MinPrice: model.MinPrice,
             MaxPrice: model.MaxPrice,
-            Currency: model.Currency,
+            Currency: model.Currency ?? Currency.TRY.ToString(),
             VehicleCriteria: MapVehicle(model.VehicleCriteria),
             PropertyCriteria: MapProperty(model.PropertyCriteria),
             HotelCriteria: MapHotel(model.HotelCriteria)
@@ -67,11 +67,13 @@ public static class SearchIntentMapper
         }
 
         return new PropertySearchCriteria(
-            PropertyType: model.PropertyType,
+            Bedrooms: model.Bedrooms,
+            Bathrooms: model.Bathrooms,
             SeaView: model.SeaView,
             Detached: model.Detached,
-            Bedrooms: model.Bedrooms,
-            Pool: model.Pool);
+            Furnished: model.Furnished,
+            Pool: model.Pool,
+            Garden: model.Garden);
     }
 
     private static HotelSearchCriteria? MapHotel(HotelSearchIntentModel? model)
@@ -82,9 +84,18 @@ public static class SearchIntentMapper
         }
 
         return new HotelSearchCriteria(
-            MinimumStars: model.MinimumStars,
+            Stars: model.Stars,
             BreakfastIncluded: model.BreakfastIncluded,
+            OpenBuffet: model.OpenBuffet,
+            AllInclusive: model.AllInclusive,
+            Restaurant: model.Restaurant,
+            Gym: model.Gym,
+            Spa: model.Spa,
             Pool: model.Pool,
-            RoomType: model.RoomType);
+            GuestCapacity: model.GuestCapacity,
+            Parking: model.Parking,
+            SeaView: model.SeaView,
+            AirConditioning: model.AirConditioning,
+            Wifi: model.Wifi);
     }
 }

@@ -31,7 +31,15 @@ public static class SearchIntentSchema
 
                 currency = new
                 {
-                    type = new[] { "string", "null" }
+                    type = new[] { "string", "null" },
+                    @enum = new[]
+                    {
+                        "TRY",
+                        "USD",
+                        "EUR",
+                        "GBP",
+                        null
+                    }
                 },
 
                 startDate = new
@@ -63,8 +71,6 @@ public static class SearchIntentSchema
                 {
                     type = new[] { "object", "null" },
 
-                    additionalProperties = false,
-
                     properties = new
                     {
                         brand = new
@@ -84,12 +90,27 @@ public static class SearchIntentSchema
 
                         transmission = new
                         {
-                            type = new[] { "string", "null" }
+                            type = new[] { "string", "null" },
+                            @enum = new[]
+                            {
+                                "Manual",
+                                "Automatic",
+                                null
+                            }
                         },
 
                         fuelType = new
                         {
-                            type = new[] { "string", "null" }
+                            type = new[] { "string", "null" },
+                            @enum = new[]
+                            {
+                                "Gasoline",
+                                "Diesel",
+                                "Electric",
+                                "Hybrid",
+                                "LPG",
+                                null
+                            }
                         },
 
                         seats = new
@@ -112,44 +133,46 @@ public static class SearchIntentSchema
                 propertyCriteria = new
                 {
                     type = new[] { "object", "null" },
-
-                    additionalProperties = false,
-
                     properties = new
                     {
-                        propertyType = new
-                        {
-                            type = new[] { "string", "null" }
-                        },
-
-                        seaView = new
-                        {
-                            type = new[] { "boolean", "null" }
-                        },
-
-                        detached = new
-                        {
-                            type = new[] { "boolean", "null" }
-                        },
-
                         bedrooms = new
                         {
                             type = new[] { "integer", "null" }
                         },
-
+                        bathrooms = new
+                        {
+                            type = new[] { "integer", "null" }
+                        },
+                        seaView = new
+                        {
+                            type = new[] { "boolean", "null" }
+                        },
+                        detached = new
+                        {
+                            type = new[] { "boolean", "null" }
+                        },
+                        furnished = new
+                        {
+                            type = new[] { "boolean", "null" }
+                        },
                         pool = new
+                        {
+                            type = new[] { "boolean", "null" }
+                        },
+                        garden = new
                         {
                             type = new[] { "boolean", "null" }
                         }
                     },
-
                     required = new[]
                     {
-                        "propertyType",
+                        "bedrooms",
+                        "bathrooms",
                         "seaView",
                         "detached",
-                        "bedrooms",
-                        "pool"
+                        "furnished",
+                        "pool",
+                        "garden"
                     }
                 },
 
@@ -157,11 +180,9 @@ public static class SearchIntentSchema
                 {
                     type = new[] { "object", "null" },
 
-                    additionalProperties = false,
-
                     properties = new
                     {
-                        minimumStars = new
+                        stars = new
                         {
                             type = new[] { "integer", "null" }
                         },
@@ -176,18 +197,72 @@ public static class SearchIntentSchema
                             type = new[] { "boolean", "null" }
                         },
 
-                        roomType = new
+                        openBuffet = new
                         {
-                            type = new[] { "string", "null" }
+                            type = new[] { "boolean", "null" }
+                        },
+
+                        allInclusive = new
+                        {
+                            type = new[] { "boolean", "null" }
+                        },
+
+                        restaurant = new
+                        {
+                            type = new[] { "boolean", "null" }
+                        },
+
+                        gym = new
+                        {
+                            type = new[] { "boolean", "null" }
+                        },
+
+                        spa = new
+                        {
+                            type = new[] { "boolean", "null" }
+                        },
+
+                        guestCapacity = new
+                        {
+                            type = new[] { "integer", "null" }
+                        },
+
+                        parking = new
+                        {
+                            type = new[] { "boolean", "null" }
+                        },
+
+                        seaView = new
+                        {
+                            type = new[] { "boolean", "null" }
+                        },
+
+                        airConditioning = new
+                        {
+                            type = new[] { "boolean", "null" }
+                        },
+
+                        wifi = new
+                        {
+                            type = new[] { "boolean", "null" }
                         }
                     },
 
                     required = new[]
                     {
-                        "minimumStars",
+                        "stars",
                         "breakfastIncluded",
                         "pool",
-                        "roomType"
+                        "openBuffet",
+                        "allInclusive",
+                        "restaurant",
+                        "gym",
+                        "spa",
+                        "guestCapacity",
+                        "parking",
+                        "seaView",
+                        "airConditioning",
+                        "wifi"
                     }
                 }
             },

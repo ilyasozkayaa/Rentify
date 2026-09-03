@@ -16,16 +16,14 @@ public sealed class RentableProductRepository : Repository<RentableProduct>, IRe
             .AsNoTracking()
             .Where(x => x.IsActive)
             .Where(x => x.RentalType == (int)searchIntent.RentalType)
-            .Where(x => x.CityCode == searchIntent.CityCode);
+            .Where(x => x.CityCode == searchIntent.CityCode)
+            .Where(x => x.Currency == searchIntent.Currency);
 
         if (searchIntent.MinPrice.HasValue)
             query = query.Where(x => x.Price >= searchIntent.MinPrice.Value);
 
         if (searchIntent.MaxPrice.HasValue)
             query = query.Where(x => x.Price <= searchIntent.MaxPrice.Value);
-
-        if (searchIntent.MinPrice.HasValue || searchIntent.MaxPrice.HasValue)
-            query = query.Where(x => x.Currency == searchIntent.Currency);
 
         return await query.ToListAsync(cancellationToken);
     }

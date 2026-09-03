@@ -2,9 +2,11 @@
 
 public sealed record PropertySearchCriteria
 (
-    string? PropertyType,
     bool? SeaView,
     bool? Detached,
     int? Bedrooms,
-    bool? Pool
+    bool? Pool,
+    int? Bathrooms,
+    bool? Furnished,
+    bool? Garden
 );

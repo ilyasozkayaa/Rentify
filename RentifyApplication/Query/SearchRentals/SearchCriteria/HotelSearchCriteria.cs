@@ -2,8 +2,17 @@
 
 public sealed record HotelSearchCriteria
 (
-    int? MinimumStars,
+    int? Stars,
     bool? BreakfastIncluded,
     bool? Pool,
-    string? RoomType
+    bool? OpenBuffet,
+    bool? AllInclusive,
+    int? GuestCapacity,
+    bool? Parking,
+    bool? SeaView,
+    bool? AirConditioning,
+    bool? Wifi,
+    bool? Restaurant,
+    bool? Gym,
+    bool? Spa
 );

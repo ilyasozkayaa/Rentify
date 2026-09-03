@@ -11,6 +11,7 @@ using RentifyInfrastructure.Models;
 using System.ClientModel;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace RentifyInfrastructure.Services;
 
@@ -20,7 +21,8 @@ public sealed class SearchIntentService : ISearchIntentService
     private readonly IConfiguration _configuration;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     private readonly ILogger<SearchIntentService> _logger;

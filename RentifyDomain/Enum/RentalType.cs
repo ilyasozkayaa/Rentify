@@ -2,9 +2,9 @@
 
 public enum RentalType
 {
-    Hotel = 1,
-    Vehicle = 2,
-    Villa = 3,
-    Property = 4,
+    Vehicle = 1,
+    Property = 2,
+    Hotel = 3,
+    Villa = 4,
     Unknown = 5
 }
