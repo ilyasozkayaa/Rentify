@@ -70,6 +70,7 @@ public static class SearchIntentSchema
                 vehicleCriteria = new
                 {
                     type = new[] { "object", "null" },
+                    additionalProperties = false,
 
                     properties = new
                     {
@@ -133,6 +134,8 @@ public static class SearchIntentSchema
                 propertyCriteria = new
                 {
                     type = new[] { "object", "null" },
+                    additionalProperties = false,
+
                     properties = new
                     {
                         bedrooms = new
@@ -179,6 +182,7 @@ public static class SearchIntentSchema
                 hotelCriteria = new
                 {
                     type = new[] { "object", "null" },
+                    additionalProperties = false,
 
                     properties = new
                     {

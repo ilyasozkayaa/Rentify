@@ -35,6 +35,11 @@ public sealed class ExceptionHandlingMiddleware
         {
             _logger.LogInformation("Request was cancelled by the client. Path: {Path}", context.Request.Path);
         }
+        catch (BusinessException ex)
+        {
+            _logger.LogInformation("Business exception for request {Path}: {Message}", context.Request.Path, ex.Message);
+            await HandleBusinessExceptionAsync(context, ex);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception for request {Path}", context.Request.Path);
@@ -70,6 +75,22 @@ public sealed class ExceptionHandlingMiddleware
         };
 
         problemDetails.Extensions["code"] = exception.Code;
+        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
+
+        await WriteResponseAsync(context, problemDetails);
+    }
+
+    private static async Task HandleBusinessExceptionAsync(HttpContext context, BusinessException exception)
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Type = $"https://rentify.dev/errors/{exception.Code.ToString().ToLowerInvariant()}",
+            Title = exception.Message,
+            Status = exception.StatusCode,
+            Detail = exception.Message
+        };
+
+        problemDetails.Extensions["code"] = exception.Code.ToString();
         problemDetails.Extensions["traceId"] = context.TraceIdentifier;
 
         await WriteResponseAsync(context, problemDetails);
