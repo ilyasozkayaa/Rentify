@@ -2,5 +2,8 @@
 
 public enum BusinessErrorCode
 {
-    SearchCriteriaRequired
+    SearchCriteriaRequired,
+    EmailAlreadyExists,
+    InvalidCredentials,
+    AccountInactive,
 }

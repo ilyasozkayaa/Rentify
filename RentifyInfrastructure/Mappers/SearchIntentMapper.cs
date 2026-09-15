@@ -6,7 +6,7 @@ namespace RentifyInfrastructure.Mappers;
 
 public static class SearchIntentMapper
 {
-    public static SearchIntent Map(SearchIntentModel model)
+    public static SearchIntent Map(SearchIntentModel model, int page)
     {
         return new SearchIntent(
             RentalType: ParseRentalType(model.RentalType),
@@ -19,7 +19,8 @@ public static class SearchIntentMapper
             Currency: model.Currency ?? Currency.TRY.ToString(),
             VehicleCriteria: MapVehicle(model.VehicleCriteria),
             PropertyCriteria: MapProperty(model.PropertyCriteria),
-            HotelCriteria: MapHotel(model.HotelCriteria)
+            HotelCriteria: MapHotel(model.HotelCriteria),
+            Page: page
         );
     }
 

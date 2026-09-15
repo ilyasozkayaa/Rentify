@@ -25,6 +25,6 @@ public sealed class RentableProductRepository : Repository<RentableProduct>, IRe
         if (searchIntent.MaxPrice.HasValue)
             query = query.Where(x => x.Price <= searchIntent.MaxPrice.Value);
 
-        return await query.ToListAsync(cancellationToken);
+        return await query.Skip((searchIntent.Page - 1) * 1000).Take(1000).ToListAsync(cancellationToken);
     }
 }

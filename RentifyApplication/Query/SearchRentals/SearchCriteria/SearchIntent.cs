@@ -14,5 +14,6 @@ public sealed record SearchIntent
     string? Currency,
     VehicleSearchCriteria? VehicleCriteria,
     PropertySearchCriteria? PropertyCriteria,
-    HotelSearchCriteria? HotelCriteria
+    HotelSearchCriteria? HotelCriteria,
+    int Page
 );

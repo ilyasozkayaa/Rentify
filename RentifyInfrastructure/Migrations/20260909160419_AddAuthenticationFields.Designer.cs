@@ -3,6 +3,7 @@ using System;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RentifyInfrastructure.Persistence;
@@ -12,9 +13,11 @@ using RentifyInfrastructure.Persistence;
 namespace RentifyInfrastructure.Migrations
 {
     [DbContext(typeof(RentifyDbContext))]
-    partial class RentifyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909160419_AddAuthenticationFields")]
+    partial class AddAuthenticationFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

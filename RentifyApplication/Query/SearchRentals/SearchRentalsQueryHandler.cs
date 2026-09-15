@@ -29,7 +29,7 @@ public sealed class SearchRentalsQueryHandler : IRequestHandler<SearchRentalsQue
 
     public async Task<SearchRentalsResponse> Handle(SearchRentalsQuery request, CancellationToken cancellationToken)
     {
-        var searchIntent = await _searchIntentService.CreateIntentAsync(request.Query, cancellationToken);
+        var searchIntent = await _searchIntentService.CreateIntentAsync(request, cancellationToken);
 
         var missingCriteria = new List<string>();
 

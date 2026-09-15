@@ -16,8 +16,4 @@
     <ProjectReference Include="..\RentifyDomain\RentifyDomain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Command\" />
-  </ItemGroup>
-
 </Project>

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using OpenAI.Responses;
 using RentifyApplication.Exceptions;
 using RentifyApplication.IServices;
+using RentifyApplication.Query.SearchRentals;
 using RentifyApplication.Query.SearchRentals.SearchCriteria;
 using RentifyDomain.Enum;
 using RentifyInfrastructure.Mappers;
@@ -37,7 +38,7 @@ public sealed class SearchIntentService : ISearchIntentService
         _llmMetrics = llmMetrics;
     }
 
-    public async Task<SearchIntent> CreateIntentAsync(string query, CancellationToken cancellationToken)
+    public async Task<SearchIntent> CreateIntentAsync(SearchRentalsQuery query, CancellationToken cancellationToken)
     {
         var model = _configuration["OpenAI:Model"]
             ?? throw new InvalidOperationException(
@@ -68,7 +69,7 @@ public sealed class SearchIntentService : ISearchIntentService
             - Currency must be a 3-letter ISO currency code such as TRY, USD or EUR.
             """));
 
-        options.InputItems.Add(ResponseItem.CreateUserMessageItem(query));
+        options.InputItems.Add(ResponseItem.CreateUserMessageItem(query.Query));
 
         ClientResult<ResponseResult> response;
         var stopwatch = Stopwatch.StartNew();
@@ -125,7 +126,16 @@ public sealed class SearchIntentService : ISearchIntentService
             usage.TotalTokenCount,
             stopwatch.ElapsedMilliseconds);
 
-        var modelResult = JsonSerializer.Deserialize<SearchIntentModel>(output, JsonOptions);
+        SearchIntentModel? modelResult;
+
+        try
+        {
+            modelResult = JsonSerializer.Deserialize<SearchIntentModel>(output, JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid response.", ex);
+        }
 
         if (modelResult is null)
         {
@@ -134,7 +144,7 @@ public sealed class SearchIntentService : ISearchIntentService
 
         ValidateModelResult(modelResult);
 
-        return SearchIntentMapper.Map(modelResult);
+        return SearchIntentMapper.Map(modelResult, query.Page);
     }
 
     private static void ValidateModelResult(SearchIntentModel model)
@@ -142,6 +152,11 @@ public sealed class SearchIntentService : ISearchIntentService
         if (!Enum.TryParse<RentalType>(model.RentalType, ignoreCase: true, out var rentalType) || !Enum.IsDefined(rentalType))
         {
             throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid rental type.");
+        }
+
+        if (model.CityCode != 0 && !Enum.IsDefined(typeof(CityCode), model.CityCode))
+        {
+            throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid city code.");
         }
 
         DateOnly? startDate = null;
@@ -170,6 +185,27 @@ public sealed class SearchIntentService : ISearchIntentService
         if (startDate.HasValue && endDate.HasValue && endDate < startDate)
         {
             throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid date range.");
+        }
+
+        switch (rentalType)
+        {
+            case RentalType.Vehicle when model.VehicleCriteria is null:
+                throw new LlmServiceException(
+                    "LLM_INVALID_RESPONSE",
+                    502,
+                    "Search service returned missing vehicle criteria.");
+
+            case RentalType.Property or RentalType.Villa when model.PropertyCriteria is null:
+                throw new LlmServiceException(
+                    "LLM_INVALID_RESPONSE",
+                    502,
+                    "Search service returned missing property criteria.");
+
+            case RentalType.Hotel when model.HotelCriteria is null:
+                throw new LlmServiceException(
+                    "LLM_INVALID_RESPONSE",
+                    502,
+                    "Search service returned missing hotel criteria.");
         }
     }
 }
