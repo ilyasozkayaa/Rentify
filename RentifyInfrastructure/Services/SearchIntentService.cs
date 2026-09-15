@@ -187,25 +187,43 @@ public sealed class SearchIntentService : ISearchIntentService
             throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid date range.");
         }
 
+        if (!string.IsNullOrWhiteSpace(model.Currency))
+        {
+            if (!Enum.TryParse<Currency>(model.Currency, ignoreCase: true, out var currency) || !Enum.IsDefined(currency))
+            {
+                throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid currency.");
+            }
+        }
+
+        if (model.MinPrice.HasValue && model.MinPrice.Value < 0 || model.MaxPrice.HasValue && model.MaxPrice.Value < 0)
+        {
+            throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid price.");
+        }
+
+        if (model.MinPrice.HasValue && model.MaxPrice.HasValue && model.MinPrice.Value > model.MaxPrice.Value)
+        {
+            throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid price range.");
+        }
+
         switch (rentalType)
         {
             case RentalType.Vehicle when model.VehicleCriteria is null:
-                throw new LlmServiceException(
-                    "LLM_INVALID_RESPONSE",
-                    502,
-                    "Search service returned missing vehicle criteria.");
+                throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned missing vehicle criteria.");
+
+            case RentalType.Vehicle when model.VehicleCriteria.Seats is <= 0:
+                throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid seat count.");
 
             case RentalType.Property or RentalType.Villa when model.PropertyCriteria is null:
-                throw new LlmServiceException(
-                    "LLM_INVALID_RESPONSE",
-                    502,
-                    "Search service returned missing property criteria.");
+                throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned missing property criteria.");
 
             case RentalType.Hotel when model.HotelCriteria is null:
-                throw new LlmServiceException(
-                    "LLM_INVALID_RESPONSE",
-                    502,
-                    "Search service returned missing hotel criteria.");
+                throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned missing hotel criteria.");
+
+            case RentalType.Hotel when model.HotelCriteria.Stars is < 1 or > 5:
+                throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid hotel star rating.");
+
+            case RentalType.Hotel when model.HotelCriteria.GuestCapacity is <= 0:
+                throw new LlmServiceException("LLM_INVALID_RESPONSE", 502, "Search service returned an invalid guest capacity.");
         }
     }
 }

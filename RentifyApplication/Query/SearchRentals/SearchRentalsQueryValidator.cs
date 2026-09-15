@@ -11,5 +11,8 @@ public sealed class SearchRentalsQueryValidator : AbstractValidator<SearchRental
             .Must(query => query.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).Length >= 3).WithMessage("Please provide at least 3 words to describe your search.")
             .Must(query => query.Count(char.IsLetterOrDigit) >= 15).WithMessage("Please provide a little more detail about your search.")
             .MaximumLength(500).WithMessage("Your search cannot exceed 500 characters.");
+
+        RuleFor(x => x.Page)
+            .GreaterThanOrEqualTo(1).WithMessage("Page number must be a positive integer.");
     }
 }

@@ -11,6 +11,8 @@ using RentifyInfrastructure.Dependency;
 using Scalar.AspNetCore;
 using System.ClientModel;
 using System.ClientModel.Primitives;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -40,24 +42,40 @@ builder.Services.AddRateLimiter(options =>
 
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
         httpContext =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        {
+            var userId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            var partitionKey = !string.IsNullOrWhiteSpace(userId)
+                ? $"user:{userId}"
+                : $"ip:{httpContext.Connection.RemoteIpAddress}";
+
+            return RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey,
                 _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = 60,
                     Window = TimeSpan.FromMinutes(1),
                     QueueLimit = 0
-                }));
+                });
+        });
 
     options.AddPolicy("llm-search", httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+    {
+        var userId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+        var partitionKey = !string.IsNullOrWhiteSpace(userId)
+            ? $"user:{userId}"
+            : $"ip:{httpContext.Connection.RemoteIpAddress}";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey,
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 2,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
-            }));
+            });
+    });
 });
 
 builder.Services.AddOpenApi(options =>
@@ -119,12 +137,11 @@ builder.Services.AddSingleton<ResponsesClient>(sp =>
 
     var options = new ResponsesClientOptions
     {
-        RetryPolicy = new ClientRetryPolicy(1)
+        RetryPolicy = new ClientRetryPolicy(1),
+        NetworkTimeout = TimeSpan.FromSeconds(10)
     };
 
-    return new ResponsesClient(
-        new ApiKeyCredential(apiKey),
-        options);
+    return new ResponsesClient(new ApiKeyCredential(apiKey), options);
 });
 
 var app = builder.Build();
@@ -138,11 +155,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-app.UseRateLimiter();
 app.UseAuthentication();
-
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 

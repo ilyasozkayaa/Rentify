@@ -39,15 +39,24 @@ public sealed class SearchRentalsQueryHandler : IRequestHandler<SearchRentalsQue
         if (searchIntent.CityCode == 0)
             missingCriteria.Add("city");
 
+        if (!searchIntent.StartDate.HasValue)
+            missingCriteria.Add("rental start date");
+
+        if (!searchIntent.EndDate.HasValue)
+            missingCriteria.Add("rental end date");
+
         if (missingCriteria.Count > 0)
-            throw new BusinessException(
-                $"Please specify: {string.Join(", ", missingCriteria)}.",
-                BusinessErrorCode.SearchCriteriaRequired);
+            throw new BusinessException($"Please specify: {string.Join(", ", missingCriteria)}.", BusinessErrorCode.SearchCriteriaRequired);
 
         var products = await _rentableProductRepository.SearchAsync(searchIntent, cancellationToken);
 
+        bool hasNextPage = products.Count > 1000;
+
+        if (hasNextPage)
+            products.RemoveAt(1000);
+
         if (products.Count == 0)
-            return new SearchRentalsResponse([]);
+            return new SearchRentalsResponse([], false);
 
         switch (searchIntent.RentalType)
         {
@@ -142,6 +151,6 @@ public sealed class SearchRentalsQueryHandler : IRequestHandler<SearchRentalsQue
             ((CityCode)x.CityCode).ToString(),
             x.Price,
             x.Currency,
-            x.Description)).ToArray());
+            x.Description)).ToArray(), hasNextPage);
     }
 }
