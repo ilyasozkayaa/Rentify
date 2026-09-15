@@ -62,4 +62,16 @@ public sealed class SearchRentalsQueryValidatorTests
 
         result.ShouldHaveValidationErrorFor(x => x.Page);
     }
+
+    [Fact]
+    public void Should_fail_when_query_is_null()
+    {
+        var validator = new SearchRentalsQueryValidator();
+        var query = new SearchRentalsQuery(null!, 1);
+
+        var result = validator.TestValidate(query);
+
+        result.ShouldHaveValidationErrorFor(x => x.Query)
+            .WithErrorMessage("Please enter what you are looking for.");
+    }
 }

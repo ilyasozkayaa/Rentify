@@ -40,6 +40,10 @@ public sealed class ExceptionHandlingMiddleware
             _logger.LogInformation("Business exception for request {Path}: {Message}", context.Request.Path, ex.Message);
             await HandleBusinessExceptionAsync(context, ex);
         }
+        catch (DatabaseUniqueConstraintException)
+        {
+            await HandleDatabaseUniqueConstraintExceptionAsync(context);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception for request {Path}", context.Request.Path);
@@ -107,6 +111,22 @@ public sealed class ExceptionHandlingMiddleware
         };
 
         problemDetails.Extensions["code"] = "INTERNAL_SERVER_ERROR";
+        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
+
+        await WriteResponseAsync(context, problemDetails);
+    }
+
+    private static async Task HandleDatabaseUniqueConstraintExceptionAsync(HttpContext context)
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Type = "https://rentify.dev/errors/unique-constraint-violation",
+            Title = "A conflict occurred.",
+            Status = StatusCodes.Status409Conflict,
+            Detail = "A resource with the same unique value already exists."
+        };
+
+        problemDetails.Extensions["code"] = "UNIQUE_CONSTRAINT_VIOLATION";
         problemDetails.Extensions["traceId"] = context.TraceIdentifier;
 
         await WriteResponseAsync(context, problemDetails);

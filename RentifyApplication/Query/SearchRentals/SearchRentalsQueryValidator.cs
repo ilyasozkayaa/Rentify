@@ -7,6 +7,7 @@ public sealed class SearchRentalsQueryValidator : AbstractValidator<SearchRental
     public SearchRentalsQueryValidator()
     {
         RuleFor(x => x.Query)
+            .Cascade(CascadeMode.Stop)
             .NotEmpty().WithMessage("Please enter what you are looking for.")
             .Must(query => query.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).Length >= 3).WithMessage("Please provide at least 3 words to describe your search.")
             .Must(query => query.Count(char.IsLetterOrDigit) >= 15).WithMessage("Please provide a little more detail about your search.")
