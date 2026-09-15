@@ -18,7 +18,7 @@ public class SearchController : ControllerBase
         _sender = sender;
     }
 
-    [HttpPost]
+    [HttpPost("search")]
     [EnableRateLimiting("llm-search")]
     public async Task<IActionResult> Search([FromBody] SearchRentalsQuery query, CancellationToken cancellationToken)
     {
