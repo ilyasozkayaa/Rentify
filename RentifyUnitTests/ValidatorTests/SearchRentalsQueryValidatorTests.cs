@@ -38,4 +38,28 @@ public sealed class SearchRentalsQueryValidatorTests
 
         result.ShouldHaveValidationErrorFor(x => x.Query);
     }
+
+    [Fact]
+    public void Should_have_error_when_page_is_less_than_one()
+    {
+        var query = new SearchRentalsQuery(
+            "Antalya'da müstakil deniz manzaralı villa",
+            0);
+
+        var result = _validator.TestValidate(query);
+
+        result.ShouldHaveValidationErrorFor(x => x.Page);
+    }
+
+    [Fact]
+    public void Should_have_error_when_page_exceeds_the_maximum()
+    {
+        var query = new SearchRentalsQuery(
+            "Antalya'da müstakil deniz manzaralı villa",
+            1001);
+
+        var result = _validator.TestValidate(query);
+
+        result.ShouldHaveValidationErrorFor(x => x.Page);
+    }
 }

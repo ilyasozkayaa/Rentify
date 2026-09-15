@@ -13,6 +13,6 @@ public sealed class SearchRentalsQueryValidator : AbstractValidator<SearchRental
             .MaximumLength(500).WithMessage("Your search cannot exceed 500 characters.");
 
         RuleFor(x => x.Page)
-            .GreaterThanOrEqualTo(1).WithMessage("Page number must be a positive integer.");
+            .InclusiveBetween(1, 1000).WithMessage("Page must be between 1 and 1000.");
     }
 }
