@@ -1,3 +1,3 @@
 ﻿namespace RentifyApplication.Command.Register;
 
-public sealed record RegisterCommandResponse(int Id, string Email, string FirstName, string LastName);
+public sealed record RegisterCommandResponse(string Email, string FirstName, string LastName);

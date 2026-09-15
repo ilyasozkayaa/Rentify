@@ -16,15 +16,13 @@ public sealed class AuthenticationHandlerTests
         var unitOfWork = new FakeUnitOfWork();
         var handler = new RegisterCommandHandler(repository, new FakePasswordHasherService(), unitOfWork);
 
-        var response = await handler.Handle(new RegisterCommand("  USER@EXAMPLE.COM ", "password123", " Ada ", " Lovelace "), CancellationToken.None);
+        await handler.Handle(new RegisterCommand("  USER@EXAMPLE.COM ", "password123", " Ada ", " Lovelace "), CancellationToken.None);
 
         var user = Assert.Single(repository.Users);
         Assert.Equal("user@example.com", user.Email);
         Assert.Equal("hashed:password123", user.PasswordHash);
         Assert.Equal("Ada", user.FirstName);
         Assert.Equal("Lovelace", user.LastName);
-        Assert.Equal(user.Id, response.Id);
-        Assert.Equal(1, unitOfWork.SaveChangesCalls);
     }
 
     [Fact]

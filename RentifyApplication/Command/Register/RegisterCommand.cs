@@ -1,5 +1,3 @@
-﻿using MediatR;
+﻿namespace RentifyApplication.Command.Register;
 
-namespace RentifyApplication.Command.Register;
-
-public sealed record RegisterCommand(string Email, string Password, string FirstName, string LastName) : IRequest<RegisterCommandResponse>;
+public sealed record RegisterCommand(string Email, string Password, string FirstName, string LastName) : ICommand<RegisterCommandResponse>;

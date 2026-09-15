@@ -42,8 +42,7 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Re
         };
 
         await _userRepository.AddAsync(user, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new RegisterCommandResponse(user.Id, user.Email, user.FirstName, user.LastName);
+        return new RegisterCommandResponse(user.Email, user.FirstName, user.LastName);
     }
 }
