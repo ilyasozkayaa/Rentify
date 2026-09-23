@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using RentifyDomain.Entities;
+using RentifyDomain.Enum;
 
 namespace RentifyInfrastructure.Persistence.Configurations;
 
@@ -20,27 +21,27 @@ public sealed class RentableProductConfiguration : IEntityTypeConfiguration<Rent
         builder.Property(x => x.Price).IsRequired().HasPrecision(18, 2);
         builder.Property(x => x.Currency).IsRequired().HasMaxLength(3).HasDefaultValue("TRY");
         builder.Property(x => x.Attributes).HasColumnType("jsonb");
-        builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
+        builder.Property(x => x.Status).IsRequired().HasDefaultValue((int)RentableProductStatus.Active);
         builder.Property(x => x.CreatedAt).IsRequired();
         builder.HasOne(x => x.Owner).WithMany(x => x.RentableProducts).HasForeignKey(x => x.OwnerUserId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(x => new
         {
             x.CityCode,
             x.RentalType,
-            x.IsActive
+            x.Status
         });
         builder.HasIndex(x => new
         {
             x.CityCode,
             x.District,
             x.RentalType,
-            x.IsActive
+            x.Status
         });
         builder.HasIndex(x => new
         {
             x.RentalType,
             x.Price,
-            x.IsActive
+            x.Status
         });
     }
 }

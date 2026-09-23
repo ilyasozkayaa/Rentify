@@ -15,7 +15,7 @@ public sealed class RentableProductRepository : Repository<RentableProduct>, IRe
     {
         var query = DbSet
             .AsNoTracking()
-            .Where(x => x.IsActive)
+            .Where(x => x.Status == (int)RentableProductStatus.Active)
             .Where(x => x.RentalType == (int)searchIntent.RentalType)
             .Where(x => x.CityCode == searchIntent.CityCode)
             .Where(x => x.Currency == searchIntent.Currency)

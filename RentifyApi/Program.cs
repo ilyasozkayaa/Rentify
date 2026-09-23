@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using AutoMapper;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using OpenAI.Responses;
@@ -19,6 +20,9 @@ using System.Threading.RateLimiting;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddAutoMapper(
+    options => options.LicenseKey = builder.Configuration["AutoMapper:LicenseKey"],
+    typeof(RentifyApi.Mappers.CreateRentalListingMappingProfile));
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {

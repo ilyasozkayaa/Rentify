@@ -1,5 +1,7 @@
 ﻿using System.Text.Json;
 
+using RentifyDomain.Enum;
+
 namespace RentifyDomain.Entities;
 
 public sealed class RentableProduct
@@ -14,7 +16,7 @@ public sealed class RentableProduct
     public decimal Price { get; set; }
     public string Currency { get; set; } = "TRY";
     public JsonDocument? Attributes { get; set; }
-    public bool IsActive { get; set; } = true;
+    public int Status { get; set; } = (int)RentableProductStatus.Active;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public User Owner { get; set; } = null!;
     public ICollection<Rent> Rents { get; set; } = [];
