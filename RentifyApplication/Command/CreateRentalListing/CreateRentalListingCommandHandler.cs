@@ -27,9 +27,7 @@ public sealed class CreateRentalListingCommandHandler : IRequestHandler<CreateRe
             Description = string.IsNullOrWhiteSpace(command.Description) ? null : command.Description.Trim(),
             Price = command.Price,
             Currency = Enum.Parse<Currency>(command.Currency, true).ToString(),
-            Attributes = command.Attributes is { } attributes
-                ? JsonDocument.Parse(attributes.GetRawText())
-                : null,
+            Attributes = JsonDocument.Parse(command.Attributes.GetRawText()),
             Status = (int)RentableProductStatus.Pending
         };
 

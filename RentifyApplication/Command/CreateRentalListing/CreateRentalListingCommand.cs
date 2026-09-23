@@ -12,4 +12,4 @@ public sealed record CreateRentalListingCommand(
     string? Description,
     decimal Price,
     string Currency,
-    JsonElement? Attributes) : ICommand<CreateRentalListingResponse>;
+    JsonElement Attributes) : ICommand<CreateRentalListingResponse>;
