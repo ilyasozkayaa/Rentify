@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RentifyApi.Models;
 using RentifyApplication.Command.CreateRentalListing;
+using RentifyApplication.Command.ActivateRentalListings;
 
 namespace RentifyApi.Controllers;
 
@@ -37,5 +38,14 @@ public sealed class RentalListingsController : ControllerBase
         var response = await _sender.Send(command, cancellationToken);
 
         return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [HttpPut("activate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ActivateListings([FromBody] ActivateRentalListingsCommand command, CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(command, cancellationToken);
+
+        return Ok(response);
     }
 }

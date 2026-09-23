@@ -44,4 +44,11 @@ public sealed class RentableProductRepository : Repository<RentableProduct>, IRe
             .Take(pageSize + 1)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<List<RentableProduct>> GetPendingByIdsAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(x => ids.Contains(x.Id) && x.Status == (int)RentableProductStatus.Pending)
+            .ToListAsync(cancellationToken);
+    }
 }

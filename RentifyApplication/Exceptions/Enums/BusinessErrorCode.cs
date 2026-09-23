@@ -6,4 +6,5 @@ public enum BusinessErrorCode
     EmailAlreadyExists,
     InvalidCredentials,
     AccountInactive,
+    RentalListingsNotPending,
 }
