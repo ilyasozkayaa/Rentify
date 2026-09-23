@@ -4,6 +4,7 @@ using RentifyApplication.Exceptions.Enums;
 using RentifyApplication.IRepositories;
 using RentifyApplication.IServices;
 using RentifyApplication.Query.SearchRentals;
+using RentifyApplication.Query.GetPendingRentalListings;
 using RentifyApplication.Query.SearchRentals.SearchCriteria;
 using RentifyDomain.Entities;
 using RentifyDomain.Enum;
@@ -112,6 +113,55 @@ public sealed class SearchRentalsQueryHandlerTests
         Assert.True(response.HasNextPage);
     }
 
+    [Fact]
+    public async Task Should_return_only_pending_listings_for_admin_review()
+    {
+        var pending = new RentableProduct
+        {
+            Id = 3,
+            OwnerUserId = 12,
+            RentalType = (int)RentalType.Villa,
+            CityCode = (int)CityCode.Antalya,
+            Title = "Pending villa",
+            Price = 3000,
+            Status = (int)RentableProductStatus.Pending
+        };
+        var repository = new FakeRentableProductRepository(
+        [
+            pending,
+            new RentableProduct { Id = 4, Title = "Active listing", Status = (int)RentableProductStatus.Active }
+        ]);
+        var handler = new GetPendingRentalListingsQueryHandler(repository);
+
+        var response = await handler.Handle(new GetPendingRentalListingsQuery(), CancellationToken.None);
+
+        var result = Assert.Single(response.Results);
+        Assert.Equal(pending.Id, result.Id);
+        Assert.Equal(pending.OwnerUserId, result.OwnerUserId);
+        Assert.Equal(nameof(RentalType.Villa), result.RentalType);
+        Assert.False(response.HasNextPage);
+    }
+
+    [Fact]
+    public async Task Should_return_a_page_of_pending_listings_and_indicate_more_results()
+    {
+        var listings = Enumerable.Range(1, 3)
+            .Select(id => new RentableProduct
+            {
+                Id = id,
+                Title = $"Pending {id}",
+                Status = (int)RentableProductStatus.Pending
+            })
+            .ToList();
+        var handler = new GetPendingRentalListingsQueryHandler(new FakeRentableProductRepository(listings));
+
+        var response = await handler.Handle(new GetPendingRentalListingsQuery(Page: 1, PageSize: 2), CancellationToken.None);
+
+        Assert.Equal(2, response.Results.Count);
+        Assert.True(response.HasNextPage);
+        Assert.Equal([1, 2], response.Results.Select(x => x.Id));
+    }
+
     private static SearchRentalsQueryHandler CreateHandler(SearchIntent intent, List<RentableProduct> products)
     {
         return new SearchRentalsQueryHandler(new FakeSearchIntentService(intent), new FakeRentableProductRepository(products));
@@ -135,6 +185,13 @@ public sealed class SearchRentalsQueryHandlerTests
         public Task<List<RentableProduct>> SearchAsync(SearchIntent searchIntent, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(products.ToList());
+        }
+
+        public Task<List<RentableProduct>> GetPendingAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(products.Where(x => x.Status == (int)RentableProductStatus.Pending)
+                .OrderBy(x => x.CreatedAt).ThenBy(x => x.Id)
+                .Skip((page - 1) * pageSize).Take(pageSize + 1).ToList());
         }
 
         public Task<RentableProduct?> GetByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(products.SingleOrDefault(x => x.Id == id));

@@ -1,0 +1,3 @@
+namespace RentifyApplication.Query.GetPendingRentalListings;
+
+public sealed record GetPendingRentalListingsResponse(IReadOnlyCollection<PendingRentalListingResult> Results, bool HasNextPage);
