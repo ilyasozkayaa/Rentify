@@ -7,4 +7,7 @@ public enum BusinessErrorCode
     InvalidCredentials,
     AccountInactive,
     RentalListingsNotPending,
+    RentableProductUnavailable,
+    RentalDatesUnavailable,
+    RentalBookingInProgress,
 }

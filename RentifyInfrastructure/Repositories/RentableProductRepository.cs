@@ -51,4 +51,11 @@ public sealed class RentableProductRepository : Repository<RentableProduct>, IRe
             .Where(x => ids.Contains(x.Id) && x.Status == (int)RentableProductStatus.Pending)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<RentableProduct?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .FromSqlInterpolated($"SELECT * FROM rentable_products WHERE \"Id\" = {id} FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken);
+    }
 }

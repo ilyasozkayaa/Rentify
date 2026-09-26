@@ -63,6 +63,7 @@ public sealed class ActivateRentalListingsCommandHandlerTests
         public Task<List<RentableProduct>> SearchAsync(SearchIntent searchIntent, CancellationToken cancellationToken = default) => Task.FromResult(_listings);
         public Task<List<RentableProduct>> GetPendingAsync(int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult(_listings.Where(IsPending).Skip((page - 1) * pageSize).Take(pageSize + 1).ToList());
         public Task<List<RentableProduct>> GetPendingByIdsAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default) => Task.FromResult(_listings.Where(x => ids.Contains(x.Id) && IsPending(x)).ToList());
+        public Task<RentableProduct?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(_listings.SingleOrDefault(x => x.Id == id));
         public Task<RentableProduct?> GetByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(_listings.SingleOrDefault(x => x.Id == id));
         public Task<List<RentableProduct>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult(_listings);
         public Task AddAsync(RentableProduct entity, CancellationToken cancellationToken = default)

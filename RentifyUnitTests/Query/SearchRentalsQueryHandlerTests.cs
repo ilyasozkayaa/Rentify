@@ -199,6 +199,8 @@ public sealed class SearchRentalsQueryHandlerTests
             return Task.FromResult(products.Where(x => ids.Contains(x.Id) && x.Status == (int)RentableProductStatus.Pending).ToList());
         }
 
+        public Task<RentableProduct?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(products.SingleOrDefault(x => x.Id == id));
+
         public Task<RentableProduct?> GetByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(products.SingleOrDefault(x => x.Id == id));
 
         public Task<List<RentableProduct>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult(products.ToList());

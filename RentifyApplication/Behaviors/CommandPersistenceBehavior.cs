@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using RentifyApplication.Command;
 using RentifyApplication.IRepositories;
 
@@ -15,10 +15,19 @@ public sealed class CommandPersistenceBehavior<TRequest, TResponse> : IPipelineB
 
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        var response = await next();
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        return response;
+        try
+        {
+            var response = await next();
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitTransactionAsync(cancellationToken);
+            return response;
+        }
+        catch
+        {
+            await _unitOfWork.RollbackTransactionAsync(CancellationToken.None);
+            throw;
+        }
     }
 }

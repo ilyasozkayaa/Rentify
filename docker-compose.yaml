@@ -12,6 +12,18 @@ services:
     volumes:
       - rentify-postgres-data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: rentify-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: rentify-pgadmin
