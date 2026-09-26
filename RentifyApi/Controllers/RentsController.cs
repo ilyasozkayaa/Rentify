@@ -1,11 +1,12 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RentifyApi.Idempotency;
 using RentifyApi.Models;
 using RentifyApplication.Command.CreateRent;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace RentifyApi.Controllers;
 
@@ -24,6 +25,7 @@ public sealed class RentsController : ControllerBase
     }
 
     [HttpPost]
+    [Idempotent]
     public async Task<IActionResult> Create([FromBody] CreateRentRequest request, CancellationToken cancellationToken)
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);

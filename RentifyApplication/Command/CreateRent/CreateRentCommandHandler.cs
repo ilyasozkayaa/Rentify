@@ -14,34 +14,16 @@ public sealed class CreateRentCommandHandler : IRequestHandler<CreateRentCommand
 {
     private readonly IRentableProductRepository _rentableProductRepository;
     private readonly IRentRepository _rentRepository;
-    private readonly IRedisCacheService _redisCacheService;
 
-    public CreateRentCommandHandler(IRentableProductRepository rentableProductRepository, IRentRepository rentRepository, IRedisCacheService redisCacheService)
+    public CreateRentCommandHandler(IRentableProductRepository rentableProductRepository, IRentRepository rentRepository)
     {
         _rentableProductRepository = rentableProductRepository;
         _rentRepository = rentRepository;
-        _redisCacheService = redisCacheService;
     }
 
     public async Task<CreateRentResponse> Handle(CreateRentCommand command, CancellationToken cancellationToken)
     {
-        var cacheKey = $"{RedisCacheKeyPrefixes.RentRequest}:{command.RentableProductId}:{command.StartDate:yyyyMMdd}:{command.EndDate:yyyyMMdd}";
-
-        if (await _redisCacheService.ExistsAsync(cacheKey, cancellationToken))
-        {
-            throw new BusinessException("This rental request is already being processed. Please try again.", BusinessErrorCode.RentalBookingInProgress, (int)HttpStatusCode.Conflict);
-        }
-
-        await _redisCacheService.SetAsync(cacheKey, "processing", cancellationToken);
-
-        try
-        {
-            return await CreateRentAsync(command, cancellationToken);
-        }
-        finally
-        {
-            await _redisCacheService.RemoveAsync(cacheKey, CancellationToken.None);
-        }
+        return await CreateRentAsync(command, cancellationToken);
     }
 
     private async Task<CreateRentResponse> CreateRentAsync(CreateRentCommand command, CancellationToken cancellationToken)

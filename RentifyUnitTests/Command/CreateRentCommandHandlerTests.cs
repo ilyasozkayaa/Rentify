@@ -1,9 +1,7 @@
 using RentifyApplication.Command.CreateRent;
-using RentifyApplication.Constants;
 using RentifyApplication.Exceptions;
 using RentifyApplication.Exceptions.Enums;
 using RentifyApplication.IRepositories;
-using RentifyApplication.IServices;
 using RentifyApplication.Query.SearchRentals.SearchCriteria;
 using RentifyDomain.Entities;
 using RentifyDomain.Enum;
@@ -70,73 +68,9 @@ public sealed class CreateRentCommandHandlerTests
         Assert.Empty(repository.Rents);
     }
 
-    [Fact]
-    public async Task Handle_should_reject_when_rent_request_cache_key_exists_before_accessing_repositories()
-    {
-        var cacheService = new FakeRedisCacheService { Exists = true };
-        var handler = new CreateRentCommandHandler(
-            new FakeRentableProductRepository(null),
-            new FakeRentRepository(),
-            cacheService);
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-
-        var exception = await Assert.ThrowsAsync<BusinessException>(() =>
-            handler.Handle(new CreateRentCommand(42, 7, today.AddDays(1), today.AddDays(3)), CancellationToken.None));
-
-        Assert.Equal(BusinessErrorCode.RentalBookingInProgress, exception.Code);
-        Assert.False(cacheService.WasSet);
-        Assert.Equal($"{RedisCacheKeyPrefixes.RentRequest}:7:{today.AddDays(1):yyyyMMdd}:{today.AddDays(3):yyyyMMdd}", cacheService.LastKey);
-    }
-
-    [Fact]
-    public async Task Handle_should_add_and_remove_rent_request_cache_entry_around_database_work()
-    {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var cacheService = new FakeRedisCacheService();
-        var handler = new CreateRentCommandHandler(
-            new FakeRentableProductRepository(new RentableProduct { Id = 7, Status = (int)RentableProductStatus.Active, Price = 100 }),
-            new FakeRentRepository(),
-            cacheService);
-
-        await handler.Handle(new CreateRentCommand(42, 7, today.AddDays(1), today.AddDays(3)), CancellationToken.None);
-
-        Assert.True(cacheService.WasSet);
-        Assert.True(cacheService.WasRemoved);
-        Assert.Equal($"{RedisCacheKeyPrefixes.RentRequest}:7:{today.AddDays(1):yyyyMMdd}:{today.AddDays(3):yyyyMMdd}", cacheService.LastKey);
-    }
-
     private static CreateRentCommandHandler CreateHandler(IRentableProductRepository productRepository, IRentRepository rentRepository)
     {
-        return new CreateRentCommandHandler(
-            productRepository,
-            rentRepository,
-            new FakeRedisCacheService());
-    }
-
-    private sealed class FakeRedisCacheService : IRedisCacheService
-    {
-        public bool Exists { get; init; }
-        public bool WasSet { get; private set; }
-        public bool WasRemoved { get; private set; }
-        public string? LastKey { get; private set; }
-
-        public Task<bool> ExistsAsync(string key, CancellationToken cancellationToken = default)
-        {
-            LastKey = key;
-            return Task.FromResult(Exists);
-        }
-        public Task SetAsync(string key, string value, CancellationToken cancellationToken = default)
-        {
-            WasSet = true;
-            LastKey = key;
-            return Task.CompletedTask;
-        }
-        public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
-        {
-            WasRemoved = true;
-            LastKey = key;
-            return Task.CompletedTask;
-        }
+        return new CreateRentCommandHandler(productRepository, rentRepository);
     }
 
     private sealed class FakeRentableProductRepository(RentableProduct? product) : IRentableProductRepository

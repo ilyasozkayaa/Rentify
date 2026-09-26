@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasherService, PasswordHasherService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRedisCacheService, RedisCacheService>();
+        services.AddScoped<IIdempotencyStore, RedisIdempotencyStore>();
 
         return services;
     }
