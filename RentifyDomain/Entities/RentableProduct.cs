@@ -20,4 +20,5 @@ public sealed class RentableProduct
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public User Owner { get; set; } = null!;
     public ICollection<Rent> Rents { get; set; } = [];
+    public ICollection<RentableProductImage> Images { get; set; } = [];
 }

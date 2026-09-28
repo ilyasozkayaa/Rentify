@@ -1,6 +1,7 @@
 using System.Text.Json;
 using RentifyApplication.Command.CreateRentalListing;
 using RentifyApplication.IRepositories;
+using RentifyApplication.IServices;
 using RentifyApplication.Query.SearchRentals.SearchCriteria;
 using RentifyDomain.Entities;
 using RentifyDomain.Enum;
@@ -14,7 +15,7 @@ public sealed class CreateRentalListingCommandHandlerTests
     {
         using var attributes = JsonDocument.Parse("""{"bedrooms":2}""");
         var repository = new FakeRentableProductRepository();
-        var handler = new CreateRentalListingCommandHandler(repository);
+        var handler = new CreateRentalListingCommandHandler(repository, new FakeImageRepository(), new FakeImageStorage());
         var command = new CreateRentalListingCommand(42, 2, 7, "  Konyaaltı ", "  Deniz manzaralı daire  ", "  Açıklama  ", 1250.50m, "try", attributes.RootElement);
 
         var response = await handler.Handle(command, CancellationToken.None);
@@ -48,6 +49,23 @@ public sealed class CreateRentalListingCommandHandlerTests
         }
         public void Update(RentableProduct entity) { }
         public void Remove(RentableProduct entity) => Listings.Remove(entity);
+    }
+
+    private sealed class FakeImageRepository : IRentableProductImageRepository
+    {
+        public Task<List<RentableProductImage>> GetPendingUploadsAsync(int ownerUserId, IReadOnlyCollection<Guid> uploadIds, CancellationToken cancellationToken = default) => Task.FromResult(new List<RentableProductImage>());
+        public Task<RentableProductImage?> GetByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult<RentableProductImage?>(null);
+        public Task<List<RentableProductImage>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult(new List<RentableProductImage>());
+        public Task AddAsync(RentableProductImage entity, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public void Update(RentableProductImage entity) { }
+        public void Remove(RentableProductImage entity) { }
+    }
+
+    private sealed class FakeImageStorage : IImageStorage
+    {
+        public Task<PresignedImageUpload> CreatePresignedUploadAsync(string storageKey, string contentType, CancellationToken cancellationToken = default) => Task.FromResult(new PresignedImageUpload("", DateTime.UtcNow));
+        public Task<bool> ObjectExistsAsync(string storageKey, long expectedSize, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task PromoteAsync(string temporaryStorageKey, string permanentStorageKey, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
 }

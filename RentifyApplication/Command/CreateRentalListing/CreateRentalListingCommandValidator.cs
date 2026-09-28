@@ -29,5 +29,11 @@ public sealed class CreateRentalListingCommandValidator : AbstractValidator<Crea
 
         RuleFor(x => x.Attributes)
             .Must(attributes => attributes.ValueKind is not JsonValueKind.Null and not JsonValueKind.Undefined).WithMessage("Attributes are required.");
+
+        RuleFor(x => x.ImageUploadIds).Must(ids => ids is null || ids.Count <= CreateImageUploadBatch.CreateImageUploadBatchCommandValidator.MaximumImages).WithMessage("A maximum of 3 images can be attached.");
+
+        RuleFor(x => x.ImageUploadIds).Must(ids => ids is null || ids.Distinct().Count() == ids.Count).WithMessage("Image upload IDs must be unique.");
+
+        RuleFor(x => x.ImageUploadIds).Must(ids => ids is not { Count: > 0 } || ids.All(id => id != Guid.Empty));
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using RentifyApi.Models;
 using RentifyApplication.Command.CreateRentalListing;
 using RentifyApplication.Command.ActivateRentalListings;
+using RentifyApplication.Command.CreateImageUploadBatch;
 
 namespace RentifyApi.Controllers;
 
@@ -38,6 +39,19 @@ public sealed class RentalListingsController : ControllerBase
         var response = await _sender.Send(command, cancellationToken);
 
         return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [HttpPost("image-uploads")]
+    public async Task<IActionResult> CreateImageUploads([FromBody] CreateImageUploadBatchRequest request, CancellationToken cancellationToken)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+        if (!int.TryParse(userIdClaim, out var ownerUserId) || ownerUserId <= 0)
+            return Unauthorized();
+
+        var command = new CreateImageUploadBatchCommand(ownerUserId, (request.Files ?? []).Select(file => new ImageUploadFile(file.ContentType, file.FileSize)).ToArray());
+        var response = await _sender.Send(command, cancellationToken);
+        return Ok(response);
     }
 
     [HttpPut("activate")]

@@ -8,6 +8,7 @@ using RentifyInfrastructure.Metrics;
 using RentifyInfrastructure.Persistence;
 using RentifyInfrastructure.Repositories;
 using RentifyInfrastructure.Services;
+using Minio;
 
 namespace RentifyInfrastructure.Dependency;
 
@@ -16,6 +17,11 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<ISearchIntentService, SearchIntentService>();
+        var storageEndpoint = configuration["ObjectStorage:Endpoint"] ?? throw new InvalidOperationException("ObjectStorage endpoint is not configured.");
+        var storageAccessKey = configuration["ObjectStorage:AccessKey"] ?? throw new InvalidOperationException("ObjectStorage access key is not configured.");
+        var storageSecretKey = configuration["ObjectStorage:SecretKey"] ?? throw new InvalidOperationException("ObjectStorage secret key is not configured.");
+        services.AddSingleton<IMinioClient>(_ => new MinioClient().WithEndpoint(storageEndpoint).WithCredentials(storageAccessKey, storageSecretKey).Build());
+        services.AddScoped<IImageStorage, MinioImageStorage>();
 
         services.AddSingleton<LlmMetrics>();
         var redisConnectionString = configuration.GetConnectionString("Redis") ?? throw new InvalidOperationException("Redis connection string is not configured.");
@@ -27,6 +33,7 @@ public static class DependencyInjection
                 configuration.GetConnectionString("PostgreConnection")));
 
         services.AddScoped<IRentableProductRepository, RentableProductRepository>();
+        services.AddScoped<IRentableProductImageRepository, RentableProductImageRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRentRepository, RentRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();

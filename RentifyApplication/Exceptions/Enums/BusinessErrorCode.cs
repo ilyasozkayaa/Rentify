@@ -10,4 +10,5 @@ public enum BusinessErrorCode
     RentableProductUnavailable,
     RentalDatesUnavailable,
     RentalBookingInProgress,
+    InvalidImageUpload,
 }

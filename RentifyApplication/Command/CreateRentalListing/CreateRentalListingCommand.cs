@@ -12,4 +12,5 @@ public sealed record CreateRentalListingCommand(
     string? Description,
     decimal Price,
     string Currency,
-    JsonElement Attributes) : ICommand<CreateRentalListingResponse>;
+    JsonElement Attributes,
+    IReadOnlyList<Guid>? ImageUploadIds = null) : ICommand<CreateRentalListingResponse>;

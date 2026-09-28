@@ -10,4 +10,5 @@ public sealed record CreateRentalListingRequest(
     string? Description,
     decimal Price,
     string Currency,
-    JsonElement Attributes);
+    JsonElement Attributes,
+    IReadOnlyList<Guid>? ImageUploadIds = null);

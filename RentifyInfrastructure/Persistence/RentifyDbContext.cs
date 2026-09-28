@@ -12,6 +12,7 @@ public sealed class RentifyDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<RentableProduct> RentableProducts => Set<RentableProduct>();
     public DbSet<Rent> Rents => Set<Rent>();
+    public DbSet<RentableProductImage> RentableProductImages => Set<RentableProductImage>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
