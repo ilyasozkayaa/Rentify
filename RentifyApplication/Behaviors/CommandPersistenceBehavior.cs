@@ -15,19 +15,8 @@ public sealed class CommandPersistenceBehavior<TRequest, TResponse> : IPipelineB
 
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        await _unitOfWork.BeginTransactionAsync(cancellationToken);
-
-        try
-        {
-            var response = await next();
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            await _unitOfWork.CommitTransactionAsync(cancellationToken);
-            return response;
-        }
-        catch
-        {
-            await _unitOfWork.RollbackTransactionAsync(CancellationToken.None);
-            throw;
-        }
+        var response = await next();
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return response;
     }
 }
