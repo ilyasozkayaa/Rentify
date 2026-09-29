@@ -8,6 +8,13 @@ namespace RentifyInfrastructure.Services;
 
 public sealed class MinioImageStorage : IImageStorage
 {
+    private static readonly HashSet<string> SupportedContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+    };
+
     private readonly IMinioClient _client;
     private readonly string _bucket;
 
@@ -22,6 +29,12 @@ public sealed class MinioImageStorage : IImageStorage
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(storageKey);
         ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
+
+        if (storageKey.Contains("..", StringComparison.Ordinal) || storageKey.StartsWith("/", StringComparison.Ordinal))
+            throw new ArgumentException("The storage key is invalid.", nameof(storageKey));
+
+        if (!SupportedContentTypes.Contains(contentType))
+            throw new ArgumentException("The content type is not supported.", nameof(contentType));
 
         var url = await _client.PresignedPutObjectAsync(new PresignedPutObjectArgs()
             .WithBucket(_bucket)

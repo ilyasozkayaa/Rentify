@@ -28,6 +28,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 {
     var key = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key is not configured.");
 
+    if (Encoding.UTF8.GetByteCount(key) < 32)
+        throw new InvalidOperationException("JWT key must be at least 256 bits long.");
+
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
