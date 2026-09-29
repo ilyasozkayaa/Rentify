@@ -1,6 +1,7 @@
 using FluentValidation;
 using System.Text.Json;
 using RentifyDomain.Enum;
+using RentifyApplication.Constants;
 
 namespace RentifyApplication.Command.CreateRentalListing;
 
@@ -30,7 +31,7 @@ public sealed class CreateRentalListingCommandValidator : AbstractValidator<Crea
         RuleFor(x => x.Attributes)
             .Must(attributes => attributes.ValueKind is not JsonValueKind.Null and not JsonValueKind.Undefined).WithMessage("Attributes are required.");
 
-        RuleFor(x => x.ImageUploadIds).Must(ids => ids is null || ids.Count <= CreateImageUploadBatch.CreateImageUploadBatchCommandValidator.MaximumImages).WithMessage("A maximum of 3 images can be attached.");
+        RuleFor(x => x.ImageUploadIds).Must(ids => ids is null || ids.Count <= ProjectConstants.MaximumImages).WithMessage("A maximum of 3 images can be attached.");
 
         RuleFor(x => x.ImageUploadIds).Must(ids => ids is null || ids.Distinct().Count() == ids.Count).WithMessage("Image upload IDs must be unique.");
 

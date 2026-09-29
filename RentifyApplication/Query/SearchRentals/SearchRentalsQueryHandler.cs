@@ -3,7 +3,9 @@ using RentifyApplication.Exceptions;
 using RentifyApplication.Exceptions.Enums;
 using RentifyApplication.IRepositories;
 using RentifyApplication.IServices;
+using RentifyApplication.Query;
 using RentifyApplication.Query.SearchRentals.SearchCriteria;
+using RentifyDomain.Entities;
 using RentifyDomain.Enum;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -14,6 +16,7 @@ public sealed class SearchRentalsQueryHandler : IRequestHandler<SearchRentalsQue
 {
     private readonly ISearchIntentService _searchIntentService;
     private readonly IRentableProductRepository _rentableProductRepository;
+    private readonly IImageStorage _imageStorage;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -21,10 +24,11 @@ public sealed class SearchRentalsQueryHandler : IRequestHandler<SearchRentalsQue
         Converters = { new JsonStringEnumConverter() }
     };
 
-    public SearchRentalsQueryHandler(ISearchIntentService searchIntentService, IRentableProductRepository rentableProductRepository)
+    public SearchRentalsQueryHandler(ISearchIntentService searchIntentService, IRentableProductRepository rentableProductRepository, IImageStorage imageStorage)
     {
         _searchIntentService = searchIntentService;
         _rentableProductRepository = rentableProductRepository;
+        _imageStorage = imageStorage;
     }
 
     public async Task<SearchRentalsResponse> Handle(SearchRentalsQuery request, CancellationToken cancellationToken)
@@ -86,7 +90,6 @@ public sealed class SearchRentalsQueryHandler : IRequestHandler<SearchRentalsQue
 
             case RentalType.Property:
             case RentalType.Villa:
-
                 var propertyCriteria = searchIntent.PropertyCriteria;
 
                 if (propertyCriteria is not null)
@@ -112,7 +115,6 @@ public sealed class SearchRentalsQueryHandler : IRequestHandler<SearchRentalsQue
                 break;
 
             case RentalType.Hotel:
-
                 var hotelCriteria = searchIntent.HotelCriteria;
 
                 if (hotelCriteria is not null)
@@ -144,13 +146,36 @@ public sealed class SearchRentalsQueryHandler : IRequestHandler<SearchRentalsQue
                 break;
         }
 
-        return new SearchRentalsResponse(products.Select(x => new RentalSearchResult(
-            x.Id,
-            ((RentalType)x.RentalType).ToString(),
-            x.Title,
-            ((CityCode)x.CityCode).ToString(),
-            x.Price,
-            x.Currency,
-            x.Description)).ToArray(), hasNextPage);
+        var results = new List<RentalSearchResult>(products.Count);
+
+        foreach (var product in products)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            results.Add(await MapAsync(product, cancellationToken));
+        }
+
+        return new SearchRentalsResponse(results, hasNextPage);
+    }
+
+    private async Task<RentalSearchResult> MapAsync(RentableProduct product, CancellationToken cancellationToken)
+    {
+        var images = new List<RentalImageResult>(product.Images.Count);
+
+        foreach (var image in product.Images.OrderBy(image => image.SortOrder))
+        {
+            var url = await _imageStorage.CreatePresignedDownloadAsync(image.StorageKey, cancellationToken);
+            images.Add(new RentalImageResult(image.UploadId, url, image.SortOrder, image.IsPrimary));
+        }
+
+        return new RentalSearchResult(
+            product.Id,
+            ((RentalType)product.RentalType).ToString(),
+            product.Title,
+            ((CityCode)product.CityCode).ToString(),
+            product.Price,
+            product.Currency,
+            product.Description,
+            product.Attributes?.RootElement.Clone(),
+            images);
     }
 }

@@ -58,6 +58,13 @@ public sealed class SearchRentalsQueryHandlerTests
                 }
                 """)
         };
+        var firstImageId = Guid.NewGuid();
+        var secondImageId = Guid.NewGuid();
+        matchingProduct.Images =
+        [
+            new RentableProductImage { UploadId = secondImageId, StorageKey = "products/1/second.jpg", SortOrder = 2 },
+            new RentableProductImage { UploadId = firstImageId, StorageKey = "products/1/first.jpg", SortOrder = 1, IsPrimary = true }
+        ];
 
         var nonMatchingProduct = new RentableProduct
         {
@@ -86,6 +93,12 @@ public sealed class SearchRentalsQueryHandlerTests
         var result = Assert.Single(response.Results);
         Assert.Equal(1, result.Id);
         Assert.Equal("Toyota Corolla", result.Title);
+        Assert.Equal("Toyota", result.Attributes!.Value.GetProperty("Brand").GetString());
+        Assert.Equal([firstImageId, secondImageId], result.Images.Select(image => image.Id));
+        Assert.Equal([1, 2], result.Images.Select(image => image.SortOrder));
+        Assert.True(result.Images.First().IsPrimary);
+        Assert.Equal("https://images.example.com/products/1/first.jpg?signature=signed", result.Images.First().Url);
+        Assert.DoesNotContain("StorageKey", result.Images.First().GetType().GetProperties().Select(property => property.Name));
         Assert.False(response.HasNextPage);
     }
 
@@ -126,12 +139,19 @@ public sealed class SearchRentalsQueryHandlerTests
             Price = 3000,
             Status = (int)RentableProductStatus.Pending
         };
+        var primaryImageId = Guid.NewGuid();
+        var otherImageId = Guid.NewGuid();
+        pending.Images =
+        [
+            new RentableProductImage { UploadId = otherImageId, StorageKey = "products/3/other.webp", SortOrder = 4 },
+            new RentableProductImage { UploadId = primaryImageId, StorageKey = "products/3/primary.webp", SortOrder = 0, IsPrimary = true }
+        ];
         var repository = new FakeRentableProductRepository(
         [
             pending,
             new RentableProduct { Id = 4, Title = "Active listing", Status = (int)RentableProductStatus.Active }
         ]);
-        var handler = new GetPendingRentalListingsQueryHandler(repository);
+        var handler = new GetPendingRentalListingsQueryHandler(repository, new FakeImageStorage());
 
         var response = await handler.Handle(new GetPendingRentalListingsQuery(), CancellationToken.None);
 
@@ -139,6 +159,11 @@ public sealed class SearchRentalsQueryHandlerTests
         Assert.Equal(pending.Id, result.Id);
         Assert.Equal(pending.OwnerUserId, result.OwnerUserId);
         Assert.Equal(nameof(RentalType.Villa), result.RentalType);
+        Assert.Equal([primaryImageId, otherImageId], result.Images.Select(image => image.Id));
+        Assert.Equal([0, 4], result.Images.Select(image => image.SortOrder));
+        Assert.True(result.Images.First().IsPrimary);
+        Assert.Equal("https://images.example.com/products/3/primary.webp?signature=signed", result.Images.First().Url);
+        Assert.DoesNotContain("StorageKey", result.Images.First().GetType().GetProperties().Select(property => property.Name));
         Assert.False(response.HasNextPage);
     }
 
@@ -153,7 +178,7 @@ public sealed class SearchRentalsQueryHandlerTests
                 Status = (int)RentableProductStatus.Pending
             })
             .ToList();
-        var handler = new GetPendingRentalListingsQueryHandler(new FakeRentableProductRepository(listings));
+        var handler = new GetPendingRentalListingsQueryHandler(new FakeRentableProductRepository(listings), new FakeImageStorage());
 
         var response = await handler.Handle(new GetPendingRentalListingsQuery(Page: 1, PageSize: 2), CancellationToken.None);
 
@@ -164,7 +189,7 @@ public sealed class SearchRentalsQueryHandlerTests
 
     private static SearchRentalsQueryHandler CreateHandler(SearchIntent intent, List<RentableProduct> products)
     {
-        return new SearchRentalsQueryHandler(new FakeSearchIntentService(intent), new FakeRentableProductRepository(products));
+        return new SearchRentalsQueryHandler(new FakeSearchIntentService(intent), new FakeRentableProductRepository(products), new FakeImageStorage());
     }
 
     private static SearchIntent CreateIntent(RentalType rentalType = RentalType.Property, DateOnly? startDate = null, DateOnly? endDate = null, VehicleSearchCriteria? vehicleCriteria = null)
@@ -178,6 +203,14 @@ public sealed class SearchRentalsQueryHandlerTests
         {
             return Task.FromResult(intent);
         }
+    }
+
+    private sealed class FakeImageStorage : IImageStorage
+    {
+        public Task<PresignedImageUpload> CreatePresignedUploadAsync(string storageKey, string contentType, CancellationToken cancellationToken = default) => Task.FromResult(new PresignedImageUpload("", DateTime.UtcNow));
+        public Task<string> CreatePresignedDownloadAsync(string storageKey, CancellationToken cancellationToken = default) => Task.FromResult($"https://images.example.com/{storageKey}?signature=signed");
+        public Task<bool> ObjectExistsAsync(string storageKey, long expectedSize, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task PromoteAsync(string temporaryStorageKey, string permanentStorageKey, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     private sealed class FakeRentableProductRepository(List<RentableProduct> products) : IRentableProductRepository

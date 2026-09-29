@@ -1,4 +1,5 @@
 using System.Text.Json;
+using RentifyApplication.Query;
 
 namespace RentifyApplication.Query.GetPendingRentalListings;
 
@@ -13,4 +14,5 @@ public sealed record PendingRentalListingResult(
     decimal Price,
     string Currency,
     JsonElement? Attributes,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    IReadOnlyCollection<RentalImageResult> Images);

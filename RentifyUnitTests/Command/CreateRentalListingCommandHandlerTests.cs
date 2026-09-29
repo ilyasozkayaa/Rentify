@@ -64,6 +64,7 @@ public sealed class CreateRentalListingCommandHandlerTests
     private sealed class FakeImageStorage : IImageStorage
     {
         public Task<PresignedImageUpload> CreatePresignedUploadAsync(string storageKey, string contentType, CancellationToken cancellationToken = default) => Task.FromResult(new PresignedImageUpload("", DateTime.UtcNow));
+        public Task<string> CreatePresignedDownloadAsync(string storageKey, CancellationToken cancellationToken = default) => Task.FromResult("https://signed.example/image");
         public Task<bool> ObjectExistsAsync(string storageKey, long expectedSize, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task PromoteAsync(string temporaryStorageKey, string permanentStorageKey, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }

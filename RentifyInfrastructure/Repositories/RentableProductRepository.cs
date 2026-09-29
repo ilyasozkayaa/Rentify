@@ -15,6 +15,7 @@ public sealed class RentableProductRepository : Repository<RentableProduct>, IRe
     {
         var query = DbSet
             .AsNoTracking()
+            .Include(x => x.Images.OrderBy(image => image.SortOrder))
             .Where(x => x.Status == (int)RentableProductStatus.Active)
             .Where(x => x.RentalType == (int)searchIntent.RentalType)
             .Where(x => x.CityCode == searchIntent.CityCode)
@@ -37,6 +38,7 @@ public sealed class RentableProductRepository : Repository<RentableProduct>, IRe
     {
         return await DbSet
             .AsNoTracking()
+            .Include(x => x.Images.OrderBy(image => image.SortOrder))
             .Where(x => x.Status == (int)RentableProductStatus.Pending)
             .OrderBy(x => x.CreatedAt)
             .ThenBy(x => x.Id)

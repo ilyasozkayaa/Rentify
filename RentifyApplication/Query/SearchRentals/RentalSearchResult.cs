@@ -1,4 +1,5 @@
-﻿using RentifyDomain.Enum;
+using System.Text.Json;
+using RentifyApplication.Query;
 
 namespace RentifyApplication.Query.SearchRentals;
 
@@ -10,5 +11,7 @@ public sealed record RentalSearchResult
     string? City,
     decimal Price,
     string Currency,
-    string? Description
+    string? Description,
+    JsonElement? Attributes,
+    IReadOnlyCollection<RentalImageResult> Images
 );

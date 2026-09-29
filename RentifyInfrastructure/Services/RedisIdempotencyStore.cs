@@ -24,7 +24,7 @@ public sealed class RedisIdempotencyStore : IIdempotencyStore
         {
             var database = _connection.GetDatabase();
 
-            var acquired = await database.StringSetAsync(key, Constants.ProcessingValue, ttl, When.NotExists);
+            var acquired = await database.StringSetAsync(key, ProjectConstants.ProcessingValue, ttl, When.NotExists);
 
             if (acquired)
                 return new IdempotencyResult(true, false, null, null, null);
@@ -34,7 +34,7 @@ public sealed class RedisIdempotencyStore : IIdempotencyStore
             if (existingValue.IsNullOrEmpty)
                 return new IdempotencyResult(false, false, null, null, null);
 
-            if (existingValue == Constants.ProcessingValue)
+            if (existingValue == ProjectConstants.ProcessingValue)
                 return new IdempotencyResult(false, true, null, null, null);
 
             var storedResponse = JsonSerializer.Deserialize<StoredIdempotencyResponse>(existingValue.ToString());

@@ -2,12 +2,12 @@ using Minio;
 using Minio.DataModel.Args;
 using Microsoft.Extensions.Configuration;
 using RentifyApplication.IServices;
+using RentifyApplication.Constants;
 
 namespace RentifyInfrastructure.Services;
 
 public sealed class MinioImageStorage : IImageStorage
 {
-    private const int UploadExpirySeconds = 900;
     private readonly IMinioClient _client;
     private readonly string _bucket;
 
@@ -27,9 +27,9 @@ public sealed class MinioImageStorage : IImageStorage
             .WithBucket(_bucket)
             .WithObject(storageKey)
             .WithHeaders(new Dictionary<string, string> { ["Content-Type"] = contentType })
-            .WithExpiry(UploadExpirySeconds));
+            .WithExpiry(ProjectConstants.UploadExpirySeconds));
 
-        return new PresignedImageUpload(url, DateTime.UtcNow.AddSeconds(UploadExpirySeconds));
+        return new PresignedImageUpload(url, DateTime.UtcNow.AddSeconds(ProjectConstants.UploadExpirySeconds));
     }
 
     public async Task<bool> ObjectExistsAsync(string storageKey, long expectedSize, CancellationToken cancellationToken = default)
@@ -53,6 +53,16 @@ public sealed class MinioImageStorage : IImageStorage
         {
             return false;
         }
+    }
+
+    public Task<string> CreatePresignedDownloadAsync(string storageKey, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(storageKey);
+
+        return _client.PresignedGetObjectAsync(new PresignedGetObjectArgs()
+            .WithBucket(_bucket)
+            .WithObject(storageKey)
+            .WithExpiry(ProjectConstants.DownloadExpirySeconds));
     }
 
     public async Task PromoteAsync(string temporaryStorageKey, string permanentStorageKey, CancellationToken cancellationToken = default)

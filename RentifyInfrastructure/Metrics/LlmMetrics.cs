@@ -1,11 +1,10 @@
-﻿using System.Diagnostics.Metrics;
+﻿using RentifyApplication.Constants;
+using System.Diagnostics.Metrics;
 
 namespace RentifyInfrastructure.Metrics;
 
 public sealed class LlmMetrics
 {
-    public const string MeterName = "Rentify.LLM";
-
     private readonly Counter<long> _requests;
     private readonly Counter<long> _failures;
     private readonly Counter<long> _inputTokens;
@@ -14,7 +13,7 @@ public sealed class LlmMetrics
 
     public LlmMetrics(IMeterFactory meterFactory)
     {
-        var meter = meterFactory.Create(MeterName);
+        var meter = meterFactory.Create(ProjectConstants.MeterName);
 
         _requests = meter.CreateCounter<long>("rentify.llm.requests", unit: "{request}", description: "Number of LLM requests.");
 

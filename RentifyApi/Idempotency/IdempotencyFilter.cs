@@ -24,9 +24,9 @@ public sealed class IdempotencyFilter : IAsyncActionFilter
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        if (!context.HttpContext.Request.Headers.TryGetValue(Constants.HeaderName, out var headerValue) || string.IsNullOrWhiteSpace(headerValue))
+        if (!context.HttpContext.Request.Headers.TryGetValue(ProjectConstants.HeaderName, out var headerValue) || string.IsNullOrWhiteSpace(headerValue))
         {
-            context.Result = new BadRequestObjectResult(new { message = $"{Constants.HeaderName} header is required." });
+            context.Result = new BadRequestObjectResult(new { message = $"{ProjectConstants.HeaderName} header is required." });
             return;
         }
 
@@ -34,7 +34,7 @@ public sealed class IdempotencyFilter : IAsyncActionFilter
 
         if (idempotencyKey.Length > 128)
         {
-            context.Result = new BadRequestObjectResult(new { message = $"{Constants.HeaderName} cannot exceed 128 characters." });
+            context.Result = new BadRequestObjectResult(new { message = $"{ProjectConstants.HeaderName} cannot exceed 128 characters." });
             return;
         }
 
