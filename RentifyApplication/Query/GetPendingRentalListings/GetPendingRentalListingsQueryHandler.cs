@@ -18,9 +18,7 @@ public sealed class GetPendingRentalListingsQueryHandler : IRequestHandler<GetPe
         _imageStorage = imageStorage;
     }
 
-    public async Task<GetPendingRentalListingsResponse> Handle(
-    GetPendingRentalListingsQuery request,
-    CancellationToken cancellationToken)
+    public async Task<GetPendingRentalListingsResponse> Handle(GetPendingRentalListingsQuery request, CancellationToken cancellationToken)
     {
         var listings = await _rentableProductRepository.GetPendingAsync(request.Page, request.PageSize, cancellationToken);
 
@@ -43,6 +41,9 @@ public sealed class GetPendingRentalListingsQueryHandler : IRequestHandler<GetPe
 
         foreach (var image in listing.Images.OrderBy(image => image.SortOrder))
         {
+            if (image.StorageKey.StartsWith("temporary/", StringComparison.Ordinal))
+                continue;
+
             var url = await _imageStorage.CreatePresignedDownloadAsync(image.StorageKey, cancellationToken);
 
             images.Add(new RentalImageResult(image.UploadId, url, image.SortOrder, image.IsPrimary));

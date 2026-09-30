@@ -108,6 +108,9 @@ public sealed class OutboxProcessor : BackgroundService
 
             var permanentKey = $"products/{image.OwnerUserId}/{Guid.NewGuid():N}/{image.UploadId:N}{Path.GetExtension(image.StorageKey)}";
 
+            if (!await imageStorage.ValidateImageContentAsync(image.StorageKey, image.ContentType, cancellationToken))
+                throw new InvalidOperationException($"Uploaded file is not a valid {image.ContentType} image: {image.UploadId}.");
+
             await imageStorage.PromoteAsync(image.StorageKey, permanentKey, cancellationToken);
             image.StorageKey = permanentKey;
         }

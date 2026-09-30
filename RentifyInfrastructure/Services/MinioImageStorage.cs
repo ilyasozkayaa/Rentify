@@ -21,8 +21,7 @@ public sealed class MinioImageStorage : IImageStorage
     public MinioImageStorage(IMinioClient client, IConfiguration configuration)
     {
         _client = client;
-        _bucket = configuration["ObjectStorage:Bucket"]
-            ?? throw new InvalidOperationException("ObjectStorage bucket is not configured.");
+        _bucket = configuration["ObjectStorage:Bucket"] ?? throw new InvalidOperationException("ObjectStorage bucket is not configured.");
     }
 
     public async Task<PresignedImageUpload> CreatePresignedUploadAsync(string storageKey, string contentType, CancellationToken cancellationToken = default)
@@ -54,11 +53,7 @@ public sealed class MinioImageStorage : IImageStorage
 
         try
         {
-            var stat = await _client.StatObjectAsync(
-                new StatObjectArgs()
-                    .WithBucket(_bucket)
-                    .WithObject(storageKey),
-                cancellationToken);
+            var stat = await _client.StatObjectAsync(new StatObjectArgs().WithBucket(_bucket).WithObject(storageKey),cancellationToken);
 
             return stat.Size == expectedSize;
         }
@@ -72,10 +67,7 @@ public sealed class MinioImageStorage : IImageStorage
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(storageKey);
 
-        return _client.PresignedGetObjectAsync(new PresignedGetObjectArgs()
-            .WithBucket(_bucket)
-            .WithObject(storageKey)
-            .WithExpiry(ProjectConstants.DownloadExpirySeconds));
+        return _client.PresignedGetObjectAsync(new PresignedGetObjectArgs().WithBucket(_bucket).WithObject(storageKey).WithExpiry(ProjectConstants.DownloadExpirySeconds));
     }
 
     public async Task PromoteAsync(string temporaryStorageKey, string permanentStorageKey, CancellationToken cancellationToken = default)
@@ -93,10 +85,59 @@ public sealed class MinioImageStorage : IImageStorage
                         .WithObject(temporaryStorageKey)),
             cancellationToken);
 
-        await _client.RemoveObjectAsync(
-            new RemoveObjectArgs()
-                .WithBucket(_bucket)
-                .WithObject(temporaryStorageKey),
+        await _client.RemoveObjectAsync(new RemoveObjectArgs().WithBucket(_bucket).WithObject(temporaryStorageKey),cancellationToken);
+    }
+
+    public async Task<bool> ValidateImageContentAsync(string storageKey, string contentType, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(storageKey);
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
+
+        var buffer = new byte[12];
+        var totalRead = 0;
+
+        await _client.GetObjectAsync(new GetObjectArgs().WithBucket(_bucket).WithObject(storageKey).WithCallbackStream(stream =>
+                {
+                    while (totalRead < buffer.Length)
+                    {
+                        var read = stream.Read(buffer, totalRead, buffer.Length - totalRead);
+
+                        if (read == 0)
+                            break;
+
+                        totalRead += read;
+                    }
+                }),
             cancellationToken);
+
+        return contentType.ToLowerInvariant() switch
+        {
+            "image/jpeg" => totalRead >= 3 &&
+                            buffer[0] == 0xFF &&
+                            buffer[1] == 0xD8 &&
+                            buffer[2] == 0xFF,
+
+            "image/png" => totalRead >= 8 &&
+                           buffer[0] == 0x89 &&
+                           buffer[1] == 0x50 &&
+                           buffer[2] == 0x4E &&
+                           buffer[3] == 0x47 &&
+                           buffer[4] == 0x0D &&
+                           buffer[5] == 0x0A &&
+                           buffer[6] == 0x1A &&
+                           buffer[7] == 0x0A,
+
+            "image/webp" => totalRead >= 12 &&
+                            buffer[0] == 0x52 &&
+                            buffer[1] == 0x49 &&
+                            buffer[2] == 0x46 &&
+                            buffer[3] == 0x46 &&
+                            buffer[8] == 0x57 &&
+                            buffer[9] == 0x45 &&
+                            buffer[10] == 0x42 &&
+                            buffer[11] == 0x50,
+
+            _ => false
+        };
     }
 }
