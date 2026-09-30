@@ -1,9 +1,8 @@
 using System.Text.Json;
 using MediatR;
-using RentifyApplication.IRepositories;
-using RentifyApplication.IServices;
 using RentifyApplication.Exceptions;
 using RentifyApplication.Exceptions.Enums;
+using RentifyApplication.IRepositories;
 using RentifyDomain.Entities;
 using RentifyDomain.Enum;
 
@@ -13,13 +12,13 @@ public sealed class CreateRentalListingCommandHandler : IRequestHandler<CreateRe
 {
     private readonly IRentableProductRepository _rentableProductRepository;
     private readonly IRentableProductImageRepository _imageRepository;
-    private readonly IImageStorage _imageStorage;
+    private readonly IOutboxRepository _outboxRepository;
 
-    public CreateRentalListingCommandHandler(IRentableProductRepository rentableProductRepository, IRentableProductImageRepository imageRepository, IImageStorage imageStorage)
+    public CreateRentalListingCommandHandler(IRentableProductRepository rentableProductRepository, IRentableProductImageRepository imageRepository, IOutboxRepository outboxRepository)
     {
         _rentableProductRepository = rentableProductRepository;
         _imageRepository = imageRepository;
-        _imageStorage = imageStorage;
+        _outboxRepository = outboxRepository;
     }
 
     public async Task<CreateRentalListingResponse> Handle(CreateRentalListingCommand command, CancellationToken cancellationToken)
@@ -43,6 +42,7 @@ public sealed class CreateRentalListingCommandHandler : IRequestHandler<CreateRe
         if (command.ImageUploadIds is { Count: > 0 } imageIds)
         {
             var images = await _imageRepository.GetPendingUploadsAsync(command.OwnerUserId, imageIds, cancellationToken);
+
             if (images.Count != imageIds.Count || images.Select(image => image.UploadBatchId).Distinct().Count() != 1 || images.Any(image => image.ExpiresAt <= DateTime.UtcNow))
                 throw new BusinessException("One or more image uploads are invalid or expired.", BusinessErrorCode.InvalidImageUpload);
 
@@ -50,21 +50,21 @@ public sealed class CreateRentalListingCommandHandler : IRequestHandler<CreateRe
 
             foreach (var image in images)
             {
-                if (!await _imageStorage.ObjectExistsAsync(image.StorageKey, image.FileSize, cancellationToken))
-                {
-                    throw new BusinessException("One or more uploaded images are missing or have an unexpected size.", BusinessErrorCode.InvalidImageUpload);
-                }
-
                 var sortOrder = sortOrders[image.UploadId];
-                var permanentKey = $"products/{command.OwnerUserId}/{Guid.NewGuid():N}/{image.UploadId:N}{Path.GetExtension(image.StorageKey)}";
-
-                await _imageStorage.PromoteAsync(image.StorageKey, permanentKey, cancellationToken);
-
-                image.StorageKey = permanentKey;
                 image.RentableProduct = rentableProduct;
                 image.SortOrder = sortOrder;
                 image.IsPrimary = sortOrder == 0;
             }
+
+            var payload = JsonSerializer.Serialize(new { ImageUploadIds = imageIds });
+
+            await _outboxRepository.AddAsync(new OutboxMessage
+            {
+                Type = (int)OutboxMessageType.RentalListingImagesProcessing,
+                AggregateType = (int)OutboxAggregateType.RentableProduct,
+                AggregateId = null,
+                Payload = payload
+            }, cancellationToken);
         }
 
         return new CreateRentalListingResponse(rentableProduct.Title, (RentableProductStatus)rentableProduct.Status, rentableProduct.CreatedAt);

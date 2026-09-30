@@ -1,14 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using StackExchange.Redis;
+using Minio;
 using RentifyApplication.IRepositories;
 using RentifyApplication.IServices;
+using RentifyInfrastructure.BackgroundServices;
 using RentifyInfrastructure.Metrics;
 using RentifyInfrastructure.Persistence;
 using RentifyInfrastructure.Repositories;
 using RentifyInfrastructure.Services;
-using Minio;
+using StackExchange.Redis;
 
 namespace RentifyInfrastructure.Dependency;
 
@@ -41,6 +42,8 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRedisCacheService, RedisCacheService>();
         services.AddScoped<IIdempotencyStore, RedisIdempotencyStore>();
+        services.AddScoped<IOutboxRepository, OutboxRepository>();
+        services.AddHostedService<OutboxProcessor>();
 
         return services;
     }

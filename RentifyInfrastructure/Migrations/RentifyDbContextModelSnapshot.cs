@@ -16,17 +16,55 @@ namespace RentifyInfrastructure.Migrations
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
-            BuildCurrentModel(modelBuilder);
-        }
-
-        internal static void BuildCurrentModel(ModelBuilder modelBuilder)
-        {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("RentifyDomain.Entities.OutboxMessage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("AggregateId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("AggregateType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Payload")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RetryCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcessedAt", "CreatedAt");
+
+                    b.ToTable("outbox_messages", (string)null);
+                });
 
             modelBuilder.Entity("RentifyDomain.Entities.Rent", b =>
                 {
@@ -99,11 +137,6 @@ namespace RentifyInfrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<int>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1);
-
                     b.Property<int>("OwnerUserId")
                         .HasColumnType("integer");
 
@@ -113,6 +146,11 @@ namespace RentifyInfrastructure.Migrations
 
                     b.Property<int>("RentalType")
                         .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -134,22 +172,57 @@ namespace RentifyInfrastructure.Migrations
 
             modelBuilder.Entity("RentifyDomain.Entities.RentableProductImage", b =>
                 {
-                    b.Property<Guid>("UploadId").HasColumnType("uuid");
-                    b.Property<Guid>("UploadBatchId").HasColumnType("uuid");
-                    b.Property<int>("OwnerUserId").HasColumnType("integer");
-                    b.Property<int?>("RentableProductId").HasColumnType("integer");
-                    b.Property<string>("StorageKey").IsRequired().HasMaxLength(512).HasColumnType("character varying(512)");
-                    b.Property<string>("ContentType").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
-                    b.Property<long>("FileSize").HasColumnType("bigint");
-                    b.Property<int>("SortOrder").HasColumnType("integer");
-                    b.Property<bool>("IsPrimary").HasColumnType("boolean");
-                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
-                    b.Property<DateTime>("ExpiresAt").HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("UploadId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("OwnerUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RentableProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<Guid>("UploadBatchId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("UploadId");
-                    b.HasIndex("OwnerUserId", "UploadBatchId", "RentableProductId");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasFilter("\"RentableProductId\" IS NULL");
+
+                    b.HasIndex("RentableProductId")
+                        .IsUnique()
+                        .HasFilter("\"IsPrimary\" = TRUE AND \"RentableProductId\" IS NOT NULL");
+
                     b.HasIndex("RentableProductId", "SortOrder");
-                    b.HasIndex("ExpiresAt").HasFilter("\"RentableProductId\" IS NULL");
-                    b.HasIndex("RentableProductId").IsUnique().HasFilter("\"IsPrimary\" = TRUE AND \"RentableProductId\" IS NOT NULL");
+
+                    b.HasIndex("OwnerUserId", "UploadBatchId", "RentableProductId");
+
                     b.ToTable("rentable_product_images", (string)null);
                 });
 
@@ -234,16 +307,27 @@ namespace RentifyInfrastructure.Migrations
 
             modelBuilder.Entity("RentifyDomain.Entities.RentableProductImage", b =>
                 {
-                    b.HasOne("RentifyDomain.Entities.User", "Owner").WithMany().HasForeignKey("OwnerUserId").OnDelete(DeleteBehavior.Restrict).IsRequired();
-                    b.HasOne("RentifyDomain.Entities.RentableProduct", "RentableProduct").WithMany("Images").HasForeignKey("RentableProductId").OnDelete(DeleteBehavior.Cascade);
+                    b.HasOne("RentifyDomain.Entities.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RentifyDomain.Entities.RentableProduct", "RentableProduct")
+                        .WithMany("Images")
+                        .HasForeignKey("RentableProductId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.Navigation("Owner");
+
                     b.Navigation("RentableProduct");
                 });
 
             modelBuilder.Entity("RentifyDomain.Entities.RentableProduct", b =>
                 {
-                    b.Navigation("Rents");
                     b.Navigation("Images");
+
+                    b.Navigation("Rents");
                 });
 
             modelBuilder.Entity("RentifyDomain.Entities.User", b =>

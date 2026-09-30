@@ -1,7 +1,6 @@
 using System.Text.Json;
 using RentifyApplication.Command.CreateRentalListing;
 using RentifyApplication.IRepositories;
-using RentifyApplication.IServices;
 using RentifyApplication.Query.SearchRentals.SearchCriteria;
 using RentifyDomain.Entities;
 using RentifyDomain.Enum;
@@ -15,7 +14,7 @@ public sealed class CreateRentalListingCommandHandlerTests
     {
         using var attributes = JsonDocument.Parse("""{"bedrooms":2}""");
         var repository = new FakeRentableProductRepository();
-        var handler = new CreateRentalListingCommandHandler(repository, new FakeImageRepository(), new FakeImageStorage());
+        var handler = new CreateRentalListingCommandHandler(repository, new FakeImageRepository(), new FakeOutboxRepository());
         var command = new CreateRentalListingCommand(42, 2, 7, "  Konyaaltı ", "  Deniz manzaralı daire  ", "  Açıklama  ", 1250.50m, "try", attributes.RootElement);
 
         var response = await handler.Handle(command, CancellationToken.None);
@@ -35,18 +34,13 @@ public sealed class CreateRentalListingCommandHandlerTests
     private sealed class FakeRentableProductRepository : IRentableProductRepository
     {
         public List<RentableProduct> Listings { get; } = [];
-
         public Task<List<RentableProduct>> SearchAsync(SearchIntent searchIntent, CancellationToken cancellationToken = default) => Task.FromResult(Listings);
         public Task<List<RentableProduct>> GetPendingAsync(int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult(Listings.Where(x => x.Status == (int)RentableProductStatus.Pending).ToList());
         public Task<List<RentableProduct>> GetPendingByIdsAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default) => Task.FromResult(Listings.Where(x => ids.Contains(x.Id) && x.Status == (int)RentableProductStatus.Pending).ToList());
         public Task<RentableProduct?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(Listings.SingleOrDefault(x => x.Id == id));
         public Task<RentableProduct?> GetByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(Listings.SingleOrDefault(x => x.Id == id));
         public Task<List<RentableProduct>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult(Listings);
-        public Task AddAsync(RentableProduct entity, CancellationToken cancellationToken = default)
-        {
-            Listings.Add(entity);
-            return Task.CompletedTask;
-        }
+        public Task AddAsync(RentableProduct entity, CancellationToken cancellationToken = default) { Listings.Add(entity); return Task.CompletedTask; }
         public void Update(RentableProduct entity) { }
         public void Remove(RentableProduct entity) => Listings.Remove(entity);
     }
@@ -54,6 +48,7 @@ public sealed class CreateRentalListingCommandHandlerTests
     private sealed class FakeImageRepository : IRentableProductImageRepository
     {
         public Task<List<RentableProductImage>> GetPendingUploadsAsync(int ownerUserId, IReadOnlyCollection<Guid> uploadIds, CancellationToken cancellationToken = default) => Task.FromResult(new List<RentableProductImage>());
+        public Task<List<RentableProductImage>> GetByUploadIdsAsync(IReadOnlyCollection<Guid> uploadIds, CancellationToken cancellationToken = default) => Task.FromResult(new List<RentableProductImage>());
         public Task<RentableProductImage?> GetByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult<RentableProductImage?>(null);
         public Task<List<RentableProductImage>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult(new List<RentableProductImage>());
         public Task AddAsync(RentableProductImage entity, CancellationToken cancellationToken = default) => Task.CompletedTask;
@@ -61,12 +56,9 @@ public sealed class CreateRentalListingCommandHandlerTests
         public void Remove(RentableProductImage entity) { }
     }
 
-    private sealed class FakeImageStorage : IImageStorage
+    private sealed class FakeOutboxRepository : IOutboxRepository
     {
-        public Task<PresignedImageUpload> CreatePresignedUploadAsync(string storageKey, string contentType, CancellationToken cancellationToken = default) => Task.FromResult(new PresignedImageUpload("", DateTime.UtcNow));
-        public Task<string> CreatePresignedDownloadAsync(string storageKey, CancellationToken cancellationToken = default) => Task.FromResult("https://signed.example/image");
-        public Task<bool> ObjectExistsAsync(string storageKey, long expectedSize, CancellationToken cancellationToken = default) => Task.FromResult(true);
-        public Task PromoteAsync(string temporaryStorageKey, string permanentStorageKey, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task AddAsync(OutboxMessage message, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<List<OutboxMessage>> GetPendingAsync(int batchSize, CancellationToken cancellationToken = default) => Task.FromResult(new List<OutboxMessage>());
     }
-
 }

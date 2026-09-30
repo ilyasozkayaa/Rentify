@@ -9,4 +9,5 @@ public static class ProjectConstants
     public const long MaximumFileSize = 5 * 1024 * 1024;
     public const int UploadExpirySeconds = 900;
     public const int DownloadExpirySeconds = 900;
+    public const int OutboxRetryCount = 3;
 }

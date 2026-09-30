@@ -13,4 +13,12 @@ public sealed class RentableProductImageRepository : Repository<RentableProductI
     {
         return DbSet.Where(image => image.OwnerUserId == ownerUserId  && image.RentableProductId == null  && uploadIds.Contains(image.UploadId)).ToListAsync(cancellationToken);
     }
+
+    public Task<List<RentableProductImage>> GetByUploadIdsAsync(IReadOnlyCollection<Guid> uploadIds, CancellationToken cancellationToken = default)
+    {
+        return DbSet
+            .Include(x => x.RentableProduct)
+            .Where(x => x.RentableProductId != null && uploadIds.Contains(x.UploadId))
+            .ToListAsync(cancellationToken);
+    }
 }
