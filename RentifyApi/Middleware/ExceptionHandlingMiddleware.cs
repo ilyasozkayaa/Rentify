@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
+using RentifyApi.Observability;
+using RentifyApplication.Constants;
 using RentifyApplication.Exceptions;
 
 namespace RentifyApi.Middleware;
@@ -20,123 +23,87 @@ public sealed class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
-        catch (ValidationFailedException ex)
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
-            _logger.LogWarning( "Validation failed for request {Path}", context.Request.Path);
-            await HandleValidationExceptionAsync(context, ex);
-        }
-        catch (LlmServiceException ex)
-        {
-            _logger.LogError(ex, "LLM service failure for request {Path}", context.Request.Path);
-            await HandleLlmExceptionAsync(context, ex);
-        }
-        catch (OperationCanceledException) when (
-            context.RequestAborted.IsCancellationRequested)
-        {
-            _logger.LogInformation("Request was cancelled by the client. Path: {Path}", context.Request.Path);
-        }
-        catch (BusinessException ex)
-        {
-            _logger.LogInformation("Business exception for request {Path}: {Message}", context.Request.Path, ex.Message);
-            await HandleBusinessExceptionAsync(context, ex);
-        }
-        catch (DatabaseUniqueConstraintException)
-        {
-            await HandleDatabaseUniqueConstraintExceptionAsync(context);
+            context.Items[ProjectConstants.ExceptionItem] = new OperationCanceledException();
+            _logger.LogInformation("Request cancelled by client. Path: {Path}", context.Request.Path);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception for request {Path}", context.Request.Path);
-            await HandleExceptionAsync(context);
+            context.Items[ProjectConstants.ExceptionItem] = ex;
+            LogException(ex, context);
+
+            if (context.Response.HasStarted)
+            {
+                _logger.LogWarning("Response already started; cannot write problem details. Path: {Path}", context.Request.Path);
+                context.Abort();
+                return;
+            }
+
+            var problem = ex switch
+            {
+                ValidationFailedException validationException => BuildValidation(context, validationException),
+                LlmServiceException llmException => BuildLlm(context, llmException),
+                BusinessException businessException => BuildBusiness(context, businessException),
+                DatabaseUniqueConstraintException => BuildConflict(context),
+                _ => BuildInternal(context)
+            };
+
+            await WriteResponseAsync(context, problem);
         }
     }
 
-    private static async Task HandleValidationExceptionAsync(HttpContext context, ValidationFailedException exception)
+    private void LogException(Exception ex, HttpContext context)
     {
-        var problemDetails = new ProblemDetails
+        var level = ex switch
         {
-            Type = "https://rentify.dev/errors/validation",
-            Title = "Validation failed",
-            Status = StatusCodes.Status400BadRequest,
-            Detail = "One or more validation errors occurred."
+            ValidationFailedException => LogLevel.Warning,
+            LlmServiceException => LogLevel.Error,
+            BusinessException or DatabaseUniqueConstraintException => LogLevel.Information,
+            _ => LogLevel.Error
         };
 
-        problemDetails.Extensions["code"] = "VALIDATION_ERROR";
-        problemDetails.Extensions["errors"] = exception.Errors;
-        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
-
-        await WriteResponseAsync(context, problemDetails);
+        _logger.Log(level, "{Kind} for request {Path}. TraceId: {TraceId}, ExceptionType: {ExceptionType}, ErrorMessage: {ErrorMessage}, StackTrace: {StackTrace}", ex.GetType().Name, context.Request.Path, ObservabilityKeys.GetTraceId(context), ex.GetType().FullName, HttpObservabilityMiddleware.SafeErrorMessage(ex.Message), level == LogLevel.Error ? ex.StackTrace : null);
     }
 
-    private static async Task HandleLlmExceptionAsync(HttpContext context, LlmServiceException exception)
+    private static ProblemDetails BuildValidation(HttpContext context, ValidationFailedException exception)
     {
-        var problemDetails = new ProblemDetails
-        {
-            Type = $"https://rentify.dev/errors/{exception.Code.ToLowerInvariant()}",
-            Title = exception.Message,
-            Status = exception.StatusCode,
-            Detail = "The search service could not process the request."
-        };
-
-        problemDetails.Extensions["code"] = exception.Code;
-        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
-
-        await WriteResponseAsync(context, problemDetails);
+        var problem = CreateProblem(context, "https://rentify.dev/errors/validation", "Validation failed", StatusCodes.Status400BadRequest, "One or more validation errors occurred.", "VALIDATION_ERROR");
+        problem.Extensions["errors"] = exception.Errors;
+        return problem;
     }
 
-    private static async Task HandleBusinessExceptionAsync(HttpContext context, BusinessException exception)
+    private static ProblemDetails BuildLlm(HttpContext context, LlmServiceException exception) =>
+        CreateProblem(context, $"https://rentify.dev/errors/{exception.Code.ToLowerInvariant()}", "The search service could not process the request.", exception.StatusCode, "The search service could not process the request.", exception.Code);
+
+    private static ProblemDetails BuildBusiness(HttpContext context, BusinessException exception) =>
+        CreateProblem(context, $"https://rentify.dev/errors/{exception.Code.ToString().ToLowerInvariant()}", exception.Message, exception.StatusCode, exception.Message, exception.Code.ToString());
+
+    private static ProblemDetails BuildConflict(HttpContext context) =>
+        CreateProblem(context, "https://rentify.dev/errors/unique-constraint-violation", "A conflict occurred.", StatusCodes.Status409Conflict, "A resource with the same unique value already exists.", "UNIQUE_CONSTRAINT_VIOLATION");
+
+    private static ProblemDetails BuildInternal(HttpContext context) =>
+        CreateProblem(context, "https://rentify.dev/errors/internal-server-error", "An unexpected error occurred.", StatusCodes.Status500InternalServerError, "An unexpected error occurred while processing the request.", "INTERNAL_SERVER_ERROR");
+
+    private static ProblemDetails CreateProblem(HttpContext context, string type, string title, int status, string detail, string code)
     {
-        var problemDetails = new ProblemDetails
+        var problem = new ProblemDetails
         {
-            Type = $"https://rentify.dev/errors/{exception.Code.ToString().ToLowerInvariant()}",
-            Title = exception.Message,
-            Status = exception.StatusCode,
-            Detail = exception.Message
+            Type = type,
+            Title = title,
+            Status = status,
+            Detail = detail,
+            Instance = context.Request.Path
         };
 
-        problemDetails.Extensions["code"] = exception.Code.ToString();
-        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
-
-        await WriteResponseAsync(context, problemDetails);
-    }
-
-    private static async Task HandleExceptionAsync(HttpContext context)
-    {
-        var problemDetails = new ProblemDetails
-        {
-            Type = "https://rentify.dev/errors/internal-server-error",
-            Title = "An unexpected error occurred.",
-            Status = StatusCodes.Status500InternalServerError,
-            Detail = "An unexpected error occurred while processing the request."
-        };
-
-        problemDetails.Extensions["code"] = "INTERNAL_SERVER_ERROR";
-        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
-
-        await WriteResponseAsync(context, problemDetails);
-    }
-
-    private static async Task HandleDatabaseUniqueConstraintExceptionAsync(HttpContext context)
-    {
-        var problemDetails = new ProblemDetails
-        {
-            Type = "https://rentify.dev/errors/unique-constraint-violation",
-            Title = "A conflict occurred.",
-            Status = StatusCodes.Status409Conflict,
-            Detail = "A resource with the same unique value already exists."
-        };
-
-        problemDetails.Extensions["code"] = "UNIQUE_CONSTRAINT_VIOLATION";
-        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
-
-        await WriteResponseAsync(context, problemDetails);
+        problem.Extensions["code"] = code;
+        problem.Extensions["traceId"] = ObservabilityKeys.GetTraceId(context);
+        return problem;
     }
 
     private static async Task WriteResponseAsync(HttpContext context, ProblemDetails problemDetails)
     {
-        context.Response.StatusCode = problemDetails.Status ?? 500;
-        context.Response.ContentType = "application/problem+json";
-
-        await context.Response.WriteAsJsonAsync(problemDetails);
+        context.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
+        await context.Response.WriteAsJsonAsync(problemDetails, (JsonSerializerOptions?)null, "application/problem+json");
     }
 }

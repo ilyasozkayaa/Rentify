@@ -10,4 +10,6 @@ public static class ProjectConstants
     public const int UploadExpirySeconds = 900;
     public const int DownloadExpirySeconds = 900;
     public const int OutboxRetryCount = 3;
+    public const string Redacted = "[REDACTED]";
+    public const string ExceptionItem = "Rentify.Observability.Exception";
 }

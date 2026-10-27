@@ -6,6 +6,8 @@ using RentifyApplication.IRepositories;
 using RentifyApplication.IServices;
 using RentifyDomain.Entities;
 using RentifyDomain.Enum;
+using System.Diagnostics;
+using RentifyInfrastructure.Observability;
 
 namespace RentifyInfrastructure.BackgroundServices;
 
@@ -57,6 +59,8 @@ public sealed class OutboxProcessor : BackgroundService
 
         foreach (var message in messages)
         {
+            var timer = Stopwatch.StartNew();
+            var messageType = ((OutboxMessageType)message.Type).ToString();
             try
             {
                 await ProcessMessageAsync(message, imageRepository, imageStorage, cancellationToken);
@@ -65,6 +69,9 @@ public sealed class OutboxProcessor : BackgroundService
                 message.Error = null;
 
                 await unitOfWork.SaveChangesAsync(cancellationToken);
+                timer.Stop();
+                ObservabilityLog.Completed(_logger, "Outbox", "ProcessMessage", timer.ElapsedMilliseconds, "Success", null,
+                    ("OutboxMessageId", message.Id), ("MessageType", messageType), ("RetryCount", message.RetryCount));
             }
             catch (Exception ex)
             {
@@ -72,6 +79,10 @@ public sealed class OutboxProcessor : BackgroundService
                 message.Error = ex.Message;
 
                 _logger.LogError(ex, "Failed to process outbox message {OutboxMessageId}.", message.Id);
+
+                timer.Stop();
+                ObservabilityLog.Completed(_logger, "Outbox", "ProcessMessage", timer.ElapsedMilliseconds, "ProcessingError", ex,
+                    ("OutboxMessageId", message.Id), ("MessageType", messageType), ("RetryCount", message.RetryCount));
 
                 await unitOfWork.SaveChangesAsync(cancellationToken);
             }

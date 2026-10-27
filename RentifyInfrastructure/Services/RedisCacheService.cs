@@ -11,10 +11,7 @@ public sealed class RedisCacheService : IRedisCacheService
     private readonly ILogger<RedisCacheService> _logger;
     private readonly TimeSpan _defaultTtl;
 
-    public RedisCacheService(
-        IConnectionMultiplexer connection,
-        IConfiguration configuration,
-        ILogger<RedisCacheService> logger)
+    public RedisCacheService(IConnectionMultiplexer connection, IConfiguration configuration, ILogger<RedisCacheService> logger)
     {
         _connection = connection;
         _logger = logger;

@@ -13,6 +13,7 @@ using System.ClientModel;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using RentifyInfrastructure.Observability;
 
 namespace RentifyInfrastructure.Services;
 
@@ -72,14 +73,18 @@ public sealed class SearchIntentService : ISearchIntentService
         options.InputItems.Add(ResponseItem.CreateUserMessageItem(query.Query));
 
         ClientResult<ResponseResult> response;
+        var requestSucceeded = false;
+        Exception? requestException = null;
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
             response = await _client.CreateResponseAsync(options, cancellationToken);
+            requestSucceeded = true;
         }
         catch (ClientResultException ex)
         {
+            requestException = ex;
             _llmMetrics.RecordFailure(model);
 
             var (code, statusCode, message) = ex.Status switch
@@ -107,9 +112,15 @@ public sealed class SearchIntentService : ISearchIntentService
 
             throw new LlmServiceException(code, statusCode, message, ex);
         }
+        catch (Exception ex)
+        {
+            requestException = ex;
+            throw;
+        }
         finally
         {
             stopwatch.Stop();
+            ObservabilityLog.Completed(_logger, "OpenAI", "CreateSearchIntent", stopwatch.ElapsedMilliseconds, requestSucceeded ? "Success" : "OpenAIError", requestException, ("Model", model));
             _logger.LogDebug("LLM request completed. Model: {Model}, DurationMs: {DurationMs}", model, stopwatch.ElapsedMilliseconds);
         }
 

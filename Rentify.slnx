@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/build/">
     <File Path="docker-compose.yaml" />
+    <File Path="otel-collector-config.yaml" />
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/api/">

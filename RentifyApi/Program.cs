@@ -1,15 +1,19 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using AutoMapper;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using OpenAI.Responses;
+using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using RentifyApi.Middleware;
 using RentifyApplication.Dependency;
 using RentifyInfrastructure.Dependency;
 using Scalar.AspNetCore;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.Elasticsearch;
 using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.IdentityModel.Tokens.Jwt;
@@ -18,6 +22,22 @@ using System.Text;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var elasticsearchUrl = builder.Configuration["ElasticSearch:Uri"] ?? "http://localhost:9200";
+builder.Host.UseSerilog((context, services, loggerConfiguration) => loggerConfiguration
+    .ReadFrom.Configuration(context.Configuration)
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("ServiceName", "RentifyApi")
+    .WriteTo.Console()
+    .WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri(elasticsearchUrl))
+    {
+        AutoRegisterTemplate = true,
+        InlineFields = true,
+        IndexFormat = "rentify-logs-{0:yyyy.MM.dd}"
+    }));
 
 builder.Services.AddControllers();
 builder.Services.AddAutoMapper(
@@ -139,6 +159,13 @@ builder.Services
     {
         resource.AddService("RentifyApi");
     })
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddAspNetCoreInstrumentation()
+            .AddRedisInstrumentation()
+            .AddConsoleExporter();
+    })
     .WithMetrics(metrics =>
     {
         metrics
@@ -167,6 +194,7 @@ builder.Services.AddSingleton<ResponsesClient>(sp =>
 
 var app = builder.Build();
 
+app.UseMiddleware<HttpObservabilityMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())

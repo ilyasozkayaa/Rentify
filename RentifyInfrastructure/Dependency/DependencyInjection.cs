@@ -29,9 +29,10 @@ public static class DependencyInjection
 
         services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnectionString));
 
-        services.AddDbContext<RentifyDbContext>(options =>
-            options.UseNpgsql(
-                configuration.GetConnectionString("PostgreConnection")));
+        services.AddSingleton<ObservabilityDbCommandInterceptor>();
+        services.AddDbContext<RentifyDbContext>((serviceProvider, options) =>
+            options.UseNpgsql(configuration.GetConnectionString("PostgreConnection"))
+                .AddInterceptors(serviceProvider.GetRequiredService<ObservabilityDbCommandInterceptor>()));
 
         services.AddScoped<IRentableProductRepository, RentableProductRepository>();
         services.AddScoped<IRentableProductImageRepository, RentableProductImageRepository>();

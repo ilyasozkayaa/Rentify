@@ -3,6 +3,9 @@ using Minio.DataModel.Args;
 using Microsoft.Extensions.Configuration;
 using RentifyApplication.IServices;
 using RentifyApplication.Constants;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using RentifyInfrastructure.Observability;
 
 namespace RentifyInfrastructure.Services;
 
@@ -17,12 +20,33 @@ public sealed class MinioImageStorage : IImageStorage
 
     private readonly IMinioClient _client;
     private readonly string _bucket;
+    private readonly ILogger<MinioImageStorage> _logger;
 
-    public MinioImageStorage(IMinioClient client, IConfiguration configuration)
+    public MinioImageStorage(IMinioClient client, IConfiguration configuration, ILogger<MinioImageStorage> logger)
     {
         _client = client;
         _bucket = configuration["ObjectStorage:Bucket"] ?? throw new InvalidOperationException("ObjectStorage bucket is not configured.");
+        _logger = logger;
     }
+
+    private async Task<T> ObserveAsync<T>(string operation, Func<Task<T>> action)
+    {
+        var timer = Stopwatch.StartNew();
+        try
+        {
+            var result = await action();
+            ObservabilityLog.Completed(_logger, "MinIO", operation, timer.ElapsedMilliseconds, "Success");
+            return result;
+        }
+        catch (Exception ex)
+        {
+            ObservabilityLog.Completed(_logger, "MinIO", operation, timer.ElapsedMilliseconds, "StorageError", ex);
+            throw;
+        }
+    }
+
+    private async Task ObserveAsync(string operation, Func<Task> action) =>
+        await ObserveAsync(operation, async () => { await action(); return true; });
 
     public async Task<PresignedImageUpload> CreatePresignedUploadAsync(string storageKey, string contentType, CancellationToken cancellationToken = default)
     {
@@ -35,11 +59,11 @@ public sealed class MinioImageStorage : IImageStorage
         if (!SupportedContentTypes.Contains(contentType))
             throw new ArgumentException("The content type is not supported.", nameof(contentType));
 
-        var url = await _client.PresignedPutObjectAsync(new PresignedPutObjectArgs()
+        var url = await ObserveAsync("CreatePresignedUpload", () => _client.PresignedPutObjectAsync(new PresignedPutObjectArgs()
             .WithBucket(_bucket)
             .WithObject(storageKey)
             .WithHeaders(new Dictionary<string, string> { ["Content-Type"] = contentType })
-            .WithExpiry(ProjectConstants.UploadExpirySeconds));
+            .WithExpiry(ProjectConstants.UploadExpirySeconds)));
 
         return new PresignedImageUpload(url, DateTime.UtcNow.AddSeconds(ProjectConstants.UploadExpirySeconds));
     }
@@ -51,23 +75,25 @@ public sealed class MinioImageStorage : IImageStorage
         if (expectedSize <= 0)
             return false;
 
-        try
+        return await ObserveAsync("ObjectExists", async () =>
         {
-            var stat = await _client.StatObjectAsync(new StatObjectArgs().WithBucket(_bucket).WithObject(storageKey),cancellationToken);
-
-            return stat.Size == expectedSize;
-        }
-        catch (Minio.Exceptions.ObjectNotFoundException)
-        {
-            return false;
-        }
+            try
+            {
+                var stat = await _client.StatObjectAsync(new StatObjectArgs().WithBucket(_bucket).WithObject(storageKey), cancellationToken);
+                return stat.Size == expectedSize;
+            }
+            catch (Minio.Exceptions.ObjectNotFoundException)
+            {
+                return false;
+            }
+        });
     }
 
     public Task<string> CreatePresignedDownloadAsync(string storageKey, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(storageKey);
 
-        return _client.PresignedGetObjectAsync(new PresignedGetObjectArgs().WithBucket(_bucket).WithObject(storageKey).WithExpiry(ProjectConstants.DownloadExpirySeconds));
+        return ObserveAsync("CreatePresignedDownload", () => _client.PresignedGetObjectAsync(new PresignedGetObjectArgs().WithBucket(_bucket).WithObject(storageKey).WithExpiry(ProjectConstants.DownloadExpirySeconds)));
     }
 
     public async Task PromoteAsync(string temporaryStorageKey, string permanentStorageKey, CancellationToken cancellationToken = default)
@@ -75,7 +101,7 @@ public sealed class MinioImageStorage : IImageStorage
         ArgumentException.ThrowIfNullOrWhiteSpace(temporaryStorageKey);
         ArgumentException.ThrowIfNullOrWhiteSpace(permanentStorageKey);
 
-        await _client.CopyObjectAsync(
+        await ObserveAsync("PromoteObject", () => _client.CopyObjectAsync(
             new CopyObjectArgs()
                 .WithBucket(_bucket)
                 .WithObject(permanentStorageKey)
@@ -83,9 +109,9 @@ public sealed class MinioImageStorage : IImageStorage
                     new CopySourceObjectArgs()
                         .WithBucket(_bucket)
                         .WithObject(temporaryStorageKey)),
-            cancellationToken);
+            cancellationToken));
 
-        await _client.RemoveObjectAsync(new RemoveObjectArgs().WithBucket(_bucket).WithObject(temporaryStorageKey),cancellationToken);
+        await ObserveAsync("RemoveTemporaryObject", () => _client.RemoveObjectAsync(new RemoveObjectArgs().WithBucket(_bucket).WithObject(temporaryStorageKey),cancellationToken));
     }
 
     public async Task<bool> ValidateImageContentAsync(string storageKey, string contentType, CancellationToken cancellationToken = default)
@@ -96,7 +122,7 @@ public sealed class MinioImageStorage : IImageStorage
         var buffer = new byte[12];
         var totalRead = 0;
 
-        await _client.GetObjectAsync(new GetObjectArgs().WithBucket(_bucket).WithObject(storageKey).WithCallbackStream(stream =>
+        await ObserveAsync("ValidateImageContent", () => _client.GetObjectAsync(new GetObjectArgs().WithBucket(_bucket).WithObject(storageKey).WithCallbackStream(stream =>
                 {
                     while (totalRead < buffer.Length)
                     {
@@ -108,7 +134,7 @@ public sealed class MinioImageStorage : IImageStorage
                         totalRead += read;
                     }
                 }),
-            cancellationToken);
+            cancellationToken));
 
         return contentType.ToLowerInvariant() switch
         {
