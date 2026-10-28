@@ -8,6 +8,8 @@ using RentifyApi.Models;
 using RentifyApplication.Command.CreateRentalListing;
 using RentifyApplication.Command.ActivateRentalListings;
 using RentifyApplication.Command.CreateImageUploadBatch;
+using RentifyApplication.Command.RejectRentalListing;
+using RentifyApplication.Query.GetRentalListing;
 
 namespace RentifyApi.Controllers;
 
@@ -41,6 +43,14 @@ public sealed class RentalListingsController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, response);
     }
 
+    [AllowAnonymous]
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
+    {
+        var listing = await _sender.Send(new GetRentalListingQuery(id), cancellationToken);
+        return listing is null ? NotFound() : Ok(listing);
+    }
+
     [HttpPost("image-uploads")]
     public async Task<IActionResult> CreateImageUploads([FromBody] CreateImageUploadBatchRequest request, CancellationToken cancellationToken)
     {
@@ -60,6 +70,14 @@ public sealed class RentalListingsController : ControllerBase
     {
         var response = await _sender.Send(command, cancellationToken);
 
+        return Ok(response);
+    }
+
+    [HttpPut("reject")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> RejectListing([FromBody] RejectRentalListingCommand command, CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(command, cancellationToken);
         return Ok(response);
     }
 }

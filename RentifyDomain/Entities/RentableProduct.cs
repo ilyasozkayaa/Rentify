@@ -17,6 +17,7 @@ public sealed class RentableProduct
     public string Currency { get; set; } = "TRY";
     public JsonDocument? Attributes { get; set; }
     public int Status { get; set; } = (int)RentableProductStatus.Active;
+    public string? RejectionReason { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public User Owner { get; set; } = null!;
     public ICollection<Rent> Rents { get; set; } = [];

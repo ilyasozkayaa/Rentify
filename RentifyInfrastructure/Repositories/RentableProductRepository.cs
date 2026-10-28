@@ -47,6 +47,15 @@ public sealed class RentableProductRepository : Repository<RentableProduct>, IRe
             .ToListAsync(cancellationToken);
     }
 
+    public Task<RentableProduct?> GetActiveWithOwnerAndImagesAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return DbSet
+            .AsNoTracking()
+            .Include(listing => listing.Owner)
+            .Include(listing => listing.Images.OrderBy(image => image.SortOrder))
+            .SingleOrDefaultAsync(listing => listing.Id == id && listing.Status == (int)RentableProductStatus.Active, cancellationToken);
+    }
+
     public async Task<List<RentableProduct>> GetPendingByIdsAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default)
     {
         return await DbSet

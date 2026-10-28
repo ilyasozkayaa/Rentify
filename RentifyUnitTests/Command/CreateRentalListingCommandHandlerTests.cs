@@ -10,6 +10,18 @@ namespace RentifyUnitTests.Command;
 public sealed class CreateRentalListingCommandHandlerTests
 {
     [Fact]
+    public async Task Handle_should_preserve_a_ten_thousand_decimal_daily_price()
+    {
+        using var attributes = JsonDocument.Parse("{}");
+        var repository = new FakeRentableProductRepository();
+        var handler = new CreateRentalListingCommandHandler(repository, new FakeImageRepository(), new FakeOutboxRepository());
+
+        await handler.Handle(new CreateRentalListingCommand(42, 2, 34, null, "Ten thousand", null, 10000.00m, "TRY", attributes.RootElement), CancellationToken.None);
+
+        Assert.Equal(10000.00m, Assert.Single(repository.Listings).Price);
+    }
+
+    [Fact]
     public async Task Handle_should_create_an_inactive_listing_owned_by_the_authenticated_user()
     {
         using var attributes = JsonDocument.Parse("""{"bedrooms":2}""");
@@ -36,6 +48,7 @@ public sealed class CreateRentalListingCommandHandlerTests
         public List<RentableProduct> Listings { get; } = [];
         public Task<List<RentableProduct>> SearchAsync(SearchIntent searchIntent, CancellationToken cancellationToken = default) => Task.FromResult(Listings);
         public Task<List<RentableProduct>> GetPendingAsync(int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult(Listings.Where(x => x.Status == (int)RentableProductStatus.Pending).ToList());
+        public Task<RentableProduct?> GetActiveWithOwnerAndImagesAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult<RentableProduct?>(null);
         public Task<List<RentableProduct>> GetPendingByIdsAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default) => Task.FromResult(Listings.Where(x => ids.Contains(x.Id) && x.Status == (int)RentableProductStatus.Pending).ToList());
         public Task<RentableProduct?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(Listings.SingleOrDefault(x => x.Id == id));
         public Task<RentableProduct?> GetByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(Listings.SingleOrDefault(x => x.Id == id));

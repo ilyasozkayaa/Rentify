@@ -140,6 +140,10 @@ namespace RentifyInfrastructure.Migrations
                     b.Property<int>("OwnerUserId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");

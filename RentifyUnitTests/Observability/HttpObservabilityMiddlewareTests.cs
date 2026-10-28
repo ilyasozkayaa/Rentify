@@ -198,14 +198,32 @@ public sealed class HttpObservabilityMiddlewareTests
 
         private class CaptureLogger(ConcurrentQueue<CapturedEvent> events) : ILogger
         {
-            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+            private readonly AsyncLocal<IReadOnlyDictionary<string, object?>?> _scope = new();
+
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+            {
+                var previous = _scope.Value;
+                _scope.Value = state is IEnumerable<KeyValuePair<string, object?>> values
+                    ? values.ToDictionary(pair => pair.Key, pair => pair.Value)
+                    : null;
+                return new Scope(() => _scope.Value = previous);
+            }
+
             public bool IsEnabled(LogLevel logLevel) => true;
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
             {
                 var properties = state is IEnumerable<KeyValuePair<string, object?>> values
                     ? values.ToDictionary(pair => pair.Key, pair => pair.Value)
                     : new Dictionary<string, object?>();
+                if (_scope.Value is { } scope)
+                    foreach (var (key, value) in scope)
+                        properties.TryAdd(key, value);
                 events.Enqueue(new CapturedEvent(formatter(state, exception), properties));
+            }
+
+            private sealed class Scope(Action dispose) : IDisposable
+            {
+                public void Dispose() => dispose();
             }
         }
 

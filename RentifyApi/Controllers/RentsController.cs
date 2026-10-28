@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using RentifyApi.Idempotency;
 using RentifyApi.Models;
 using RentifyApplication.Command.CreateRent;
+using RentifyApplication.Query.GetMyRents;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -37,5 +38,20 @@ public sealed class RentsController : ControllerBase
         var response = await _sender.Send(command, cancellationToken);
 
         return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetMine([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (!int.TryParse(userIdClaim, out var renterUserId) || renterUserId <= 0)
+            return Unauthorized();
+
+        if (page < 1 || page > 1_000_000 || pageSize < 1)
+            return BadRequest("Page must be between 1 and 1,000,000 and pageSize must be positive.");
+
+        var boundedPageSize = Math.Min(pageSize, 50);
+        var response = await _sender.Send(new GetMyRentsQuery(renterUserId, page, boundedPageSize), cancellationToken);
+        return Ok(response);
     }
 }

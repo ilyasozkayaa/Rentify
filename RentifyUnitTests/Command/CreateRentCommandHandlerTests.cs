@@ -78,6 +78,7 @@ public sealed class CreateRentCommandHandlerTests
         public Task<RentableProduct?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(product?.Id == id ? product : null);
         public Task<List<RentableProduct>> SearchAsync(SearchIntent searchIntent, CancellationToken cancellationToken = default) => Task.FromResult(product is null ? new List<RentableProduct>() : [product]);
         public Task<List<RentableProduct>> GetPendingAsync(int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult(new List<RentableProduct>());
+        public Task<RentableProduct?> GetActiveWithOwnerAndImagesAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult<RentableProduct?>(null);
         public Task<List<RentableProduct>> GetPendingByIdsAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default) => Task.FromResult(new List<RentableProduct>());
         public Task<RentableProduct?> GetByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(product?.Id == id ? product : null);
         public Task<List<RentableProduct>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult(product is null ? new List<RentableProduct>() : [product]);
@@ -92,6 +93,7 @@ public sealed class CreateRentCommandHandlerTests
         public bool HasOverlap { get; init; }
 
         public Task<bool> HasConfirmedOverlapAsync(int rentableProductId, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default) => Task.FromResult(HasOverlap);
+        public Task<List<RentifyApplication.Query.GetMyRents.MyRentRecord>> GetByRenterAsync(int renterUserId, int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult(new List<RentifyApplication.Query.GetMyRents.MyRentRecord>());
         public Task<Rent?> GetByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(Rents.SingleOrDefault(x => x.Id == id));
         public Task<List<Rent>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult(Rents);
         public Task AddAsync(Rent entity, CancellationToken cancellationToken = default)
