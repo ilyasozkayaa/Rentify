@@ -4,7 +4,7 @@
 
 - Rentify is a .NET 10 solution with API, Application, Domain, Infrastructure, and UnitTests projects, plus a Vue 3/Vite frontend in `RentifyWeb`.
 - Keep changes within the accepted issue scope and follow the existing patterns in the affected layer.
-- Do not commit, push, merge, or deploy unless the user explicitly asks. Jira status changes are authorized only by the workflow below or a direct user request.
+- Do not commit, push, merge, or deploy unless the user explicitly asks, except for the Jira workflow's required issue-branch commit and push before `Ready To Prod`.
 
 ## Orchestration
 
@@ -35,8 +35,10 @@ The board configuration confirms the `Ready To Prod` column maps to `Çözüldü
 2. When picked up, the developer agent owns the task in the orchestration, creates the task branch from the latest `development`, and moves the issue to `Devam Ediyor`.
 3. After implementation, the developer adds a short Jira comment describing the change and the branch name, then moves the issue to the `Ready To QA` board column for QA.
 4. The QA agent takes issues in `Ready To QA`, moves each to the `In QA` board column, and independently checks the acceptance criteria and implementation.
-5. QA adds a Jira comment with the checks run and their results. If QA passes, move the issue to the `Ready To Prod` board column. If QA finds a failure, include actionable findings and reproduction details in the comment, then return the issue to `To Do` for another developer attempt.
-6. Failed QA cycles return to `Yapılacaklar`; this workflow has no automatic three-attempt `Block` rule.
+5. QA adds a Jira comment with the checks run and their results. Screenshot attachments are optional: record evidence in text and never block or fail QA solely because no image is attached. UI acceptance criteria still need reliable verification, but that verification does not require an uploaded screenshot.
+6. If QA passes, the coordinator ensures the accepted changes are committed on the issue branch with a concise commit message and pushes that branch to its upstream remote. Verify the push succeeded before moving the issue to the `Ready To Prod` board column; do not leave accepted changes only in a local working tree. Do not merge into `development` as part of this step.
+7. If QA finds a failure, include actionable findings and reproduction details in the comment, then return the issue to `To Do` for another developer attempt.
+8. Failed QA cycles return to `Yapılacaklar`; this workflow has no automatic three-attempt `Block` rule.
 
 Only transition when the issue's available transitions permit it. If a required transition is unavailable, report the blocker instead of claiming the status changed.
 
@@ -44,7 +46,7 @@ Only transition when the issue's available transitions permit it. If a required 
 2. **Implementation**: work only from the accepted issue and its criteria. Add the developer comment and follow the status flow above. Do not mark the issue done.
 3. **QA**: independently compare the implementation with every acceptance criterion, inspect the diff, and run relevant checks. QA is read-only: add the test comment and follow the pass/fail status flow above. Do not declare success if required checks were skipped or failed.
 
-The coordinator passes the Jira issue key, acceptance criteria, changed-file summary, and verification evidence at each handoff. Stop and ask for clarification when requirements conflict or a consequential decision is missing. Report the final outcome and any unresolved blocker to the user.
+The coordinator passes the Jira issue key, acceptance criteria, changed-file summary, and verification evidence at each handoff. The coordinator owns the post-QA commit/push and final Jira transition. Stop and ask for clarification when requirements conflict or a consequential decision is missing. Report the final outcome and any unresolved blocker to the user.
 
 ## Verification commands
 
