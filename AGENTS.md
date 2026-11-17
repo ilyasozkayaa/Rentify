@@ -19,22 +19,23 @@ For work requested through a Jira-to-implementation-to-test workflow, the coordi
 
 For each Jira task, start from the latest `development` branch and create an isolated branch named `feature/<issue-key>-<short-slug>` before editing. Never implement a task directly on `development` unless the user explicitly asks.
 
-Use the exact Jira transitions available for the issue. In Zeus (`KAN`), the current status mappings are:
+Use the Zeus (`KAN`) board's exact column names when describing workflow stages. The board maps these columns to Jira statuses:
 
-- `Yapılacaklar` — To Do
-- `Devam Ediyor` — In Development
-- `TESTE HAZIR` — Ready to QA
-- `İNCELEMEDE` — In QA
-- `Tamam` — Done
-- `Block` — Blocked
+- `To Do` — `Yapılacaklar`
+- `In Progress` — `Devam Ediyor`
+- `Ready To QA` — `TESTE HAZIR`
+- `In QA` — `İNCELEMEDE`
+- `Ready To Prod` — `Çözüldü` (use the available `Resolved` transition when it targets this status)
+- `Done` — `Tamam`
+- `Block` — `Block`
 
-The requested `Ready to Prod` status does not currently exist in Zeus. Never substitute `Tamam` or `Block` for it. After QA passes, if `Ready to Prod` is still unavailable, leave the issue in `İNCELEMEDE` and report that the Jira workflow needs this status configured.
+The board configuration confirms the `Ready To Prod` column maps to `Çözüldü`; do not mistake the board column label for the underlying Jira status name. Before changing an issue, inspect its currently available transitions and match the transition's destination status to the desired board column.
 
 1. New issues start in `Yapılacaklar`.
 2. When picked up, the developer agent owns the task in the orchestration, creates the task branch from the latest `development`, and moves the issue to `Devam Ediyor`.
-3. After implementation, the developer adds a short Jira comment describing the change and the branch name, then moves the issue to `TESTE HAZIR` for QA.
-4. The QA agent takes issues in `TESTE HAZIR`, moves each to `İNCELEMEDE`, and independently checks the acceptance criteria and implementation.
-5. QA adds a Jira comment with the checks run and their results. If QA passes and `Ready to Prod` exists in the Jira workflow, move the issue there. If QA finds a failure, include actionable findings and reproduction details in the comment, then return the issue to `Yapılacaklar` for another developer attempt.
+3. After implementation, the developer adds a short Jira comment describing the change and the branch name, then moves the issue to the `Ready To QA` board column for QA.
+4. The QA agent takes issues in `Ready To QA`, moves each to the `In QA` board column, and independently checks the acceptance criteria and implementation.
+5. QA adds a Jira comment with the checks run and their results. If QA passes, move the issue to the `Ready To Prod` board column. If QA finds a failure, include actionable findings and reproduction details in the comment, then return the issue to `To Do` for another developer attempt.
 6. Failed QA cycles return to `Yapılacaklar`; this workflow has no automatic three-attempt `Block` rule.
 
 Only transition when the issue's available transitions permit it. If a required transition is unavailable, report the blocker instead of claiming the status changed.
