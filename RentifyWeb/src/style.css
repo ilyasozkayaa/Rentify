@@ -2506,3 +2506,174 @@ button:disabled {
     font-size: 9px;
   }
 }
+
+/* Keep the homepage search feedback and first result row in the initial viewport. */
+.hero {
+  min-height: 0;
+  padding: clamp(28px, 2.8vw, 38px) 24px 18px;
+}
+.hero h1 {
+  margin: 10px 0 8px;
+  font-size: clamp(34px, 3.6vw, 50px);
+  line-height: 1.04;
+  letter-spacing: -1.2px;
+}
+.hero-copy > p {
+  font-size: 13px;
+  line-height: 1.45;
+}
+.search-panel {
+  height: 58px;
+  margin-top: 20px;
+  padding: 6px 6px 6px 18px;
+}
+.search-button {
+  height: 42px;
+  min-height: 42px;
+}
+.search-hint {
+  margin-top: 7px;
+}
+.results-section {
+  min-height: 0;
+  padding: 16px 32px 28px;
+}
+.results-section > .notice {
+  margin-bottom: 10px;
+}
+.results-section .section-heading {
+  margin-bottom: 10px;
+}
+.results-section .section-heading h2 {
+  margin-top: 5px;
+  font-size: 23px;
+}
+.results-section .state-card,
+.results-section .empty-state {
+  padding: 18px 16px;
+}
+.results-section .empty-icon {
+  width: 36px;
+  height: 36px;
+  font-size: 19px;
+}
+.results-section .empty-state h3 {
+  margin: 8px 0 2px;
+  font-size: 20px;
+}
+.results-section .empty-state p {
+  margin: 4px auto;
+  line-height: 1.5;
+}
+.results-section .listing-image-wrap {
+  height: 132px;
+}
+.results-section .listing-content {
+  padding: 12px 13px 11px;
+}
+.results-section .listing-heading h3 {
+  font-size: 16px;
+  line-height: 1.25;
+}
+.results-section .listing-price {
+  font-size: 11px;
+}
+.results-section .listing-location {
+  margin: 4px 0;
+  font-size: 10px;
+}
+.results-section .listing-description {
+  margin: 6px 0;
+  line-height: 1.4;
+  -webkit-line-clamp: 1;
+}
+.results-section .attributes {
+  gap: 4px;
+  margin-top: 6px;
+}
+.results-section .attributes span {
+  padding: 3px 5px;
+  font-size: 8px;
+}
+.results-section .card-action {
+  min-height: 33px;
+  margin-top: 8px;
+  font-size: 10px;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    padding: 34px 22px 18px;
+  }
+  .hero h1 {
+    font-size: clamp(36px, 5vw, 44px);
+  }
+  .search-panel {
+    height: 56px;
+    margin-top: 16px;
+  }
+  .results-section {
+    padding: 16px 26px 26px;
+  }
+  .results-section .listing-image-wrap {
+    height: 144px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding: 34px 18px 17px;
+  }
+  .hero h1 {
+    font-size: clamp(34px, 8vw, 42px);
+  }
+  .hero-copy > p {
+    font-size: 12px;
+  }
+  .search-panel {
+    width: 100%;
+    height: auto;
+    min-height: 54px;
+    margin-top: 16px;
+    padding: 6px 7px 6px 10px;
+    gap: 3px;
+  }
+  .search-panel input,
+  .search-panel input::placeholder {
+    font-size: 10px;
+  }
+  .search-button {
+    min-height: 41px;
+    height: 41px;
+    padding: 0 9px;
+    gap: 4px;
+    font-size: 9px;
+  }
+  .search-hint {
+    max-width: 300px;
+    margin: 8px auto 0;
+    line-height: 1.45;
+  }
+  .results-section {
+    padding: 18px 17px 26px;
+  }
+  .results-section .section-heading {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .results-section .section-heading h2 {
+    font-size: 20px;
+  }
+  .results-section .listing-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .results-section .listing-card {
+    max-width: 450px;
+    width: 100%;
+    margin: auto;
+  }
+  .results-section .listing-image-wrap {
+    height: 160px;
+  }
+}
