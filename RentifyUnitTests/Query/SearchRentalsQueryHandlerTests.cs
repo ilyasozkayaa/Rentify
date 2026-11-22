@@ -231,6 +231,8 @@ public sealed class SearchRentalsQueryHandlerTests
         public Task<RentableProduct?> GetActiveWithOwnerAndImagesAsync(int id, CancellationToken cancellationToken = default) =>
             Task.FromResult(products.SingleOrDefault(x => x.Id == id && x.Status == (int)RentableProductStatus.Active));
 
+        public Task<int> CountActiveAsync(CancellationToken cancellationToken = default) => Task.FromResult(products.Count(x => x.Status == (int)RentableProductStatus.Active));
+
         public Task<List<RentableProduct>> GetPendingByIdsAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(products.Where(x => ids.Contains(x.Id) && x.Status == (int)RentableProductStatus.Pending).ToList());

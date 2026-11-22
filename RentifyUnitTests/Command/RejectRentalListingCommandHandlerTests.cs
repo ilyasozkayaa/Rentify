@@ -42,6 +42,7 @@ public sealed class RejectRentalListingCommandHandlerTests
     {
         public Task<RentableProduct?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult<RentableProduct?>(listing.Id == id ? listing : null);
         public Task<RentableProduct?> GetActiveWithOwnerAndImagesAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult<RentableProduct?>(null);
+        public Task<int> CountActiveAsync(CancellationToken cancellationToken = default) => Task.FromResult(listing.Status == (int)RentableProductStatus.Active ? 1 : 0);
         public Task<List<RentableProduct>> SearchAsync(SearchIntent searchIntent, CancellationToken cancellationToken = default) => Task.FromResult(new List<RentableProduct>());
         public Task<List<RentableProduct>> GetPendingAsync(int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult(new List<RentableProduct>());
         public Task<List<RentableProduct>> GetPendingByIdsAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default) => Task.FromResult(new List<RentableProduct>());

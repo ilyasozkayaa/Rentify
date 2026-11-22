@@ -61,6 +61,7 @@ public sealed class GetRentalListingQueryHandlerTests
     private sealed class FakeProductRepository(RentableProduct listing) : IRentableProductRepository
     {
         public Task<RentableProduct?> GetActiveWithOwnerAndImagesAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult<RentableProduct?>(listing.Id == id && listing.Status == (int)RentableProductStatus.Active ? listing : null);
+        public Task<int> CountActiveAsync(CancellationToken cancellationToken = default) => Task.FromResult(listing.Status == (int)RentableProductStatus.Active ? 1 : 0);
         public Task<List<RentableProduct>> SearchAsync(SearchIntent searchIntent, CancellationToken cancellationToken = default) => Task.FromResult(new List<RentableProduct>());
         public Task<List<RentableProduct>> GetPendingAsync(int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult(new List<RentableProduct>());
         public Task<List<RentableProduct>> GetPendingByIdsAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default) => Task.FromResult(new List<RentableProduct>());

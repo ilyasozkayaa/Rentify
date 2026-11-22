@@ -56,6 +56,11 @@ public sealed class RentableProductRepository : Repository<RentableProduct>, IRe
             .SingleOrDefaultAsync(listing => listing.Id == id && listing.Status == (int)RentableProductStatus.Active, cancellationToken);
     }
 
+    public Task<int> CountActiveAsync(CancellationToken cancellationToken = default)
+    {
+        return DbSet.CountAsync(product => product.Status == (int)RentableProductStatus.Active, cancellationToken);
+    }
+
     public async Task<List<RentableProduct>> GetPendingByIdsAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default)
     {
         return await DbSet

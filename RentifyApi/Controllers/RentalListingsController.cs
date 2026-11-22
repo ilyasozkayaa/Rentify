@@ -10,6 +10,7 @@ using RentifyApplication.Command.ActivateRentalListings;
 using RentifyApplication.Command.CreateImageUploadBatch;
 using RentifyApplication.Command.RejectRentalListing;
 using RentifyApplication.Query.GetRentalListing;
+using RentifyApplication.Query.GetActiveRentalProductCount;
 
 namespace RentifyApi.Controllers;
 
@@ -49,6 +50,14 @@ public sealed class RentalListingsController : ControllerBase
     {
         var listing = await _sender.Send(new GetRentalListingQuery(id), cancellationToken);
         return listing is null ? NotFound() : Ok(listing);
+    }
+
+    [HttpGet("active-count")]
+    //ilyas
+    public async Task<IActionResult> GetActiveCount(CancellationToken cancellationToken)
+    {
+        var count = await _sender.Send(new GetActiveRentalProductCountQuery(), cancellationToken);
+        return Ok(new { count });
     }
 
     [HttpPost("image-uploads")]
